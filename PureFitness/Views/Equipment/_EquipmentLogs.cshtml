@@ -1,0 +1,41 @@
+﻿@model IEnumerable<PureFitness.Models.EquipmentLog>
+
+@if (Model == null || !Model.Any())
+{
+    <p class="text-muted text-center my-3">No maintenance logs available.</p>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Equipment Item</th>
+                <th>Remarks</th>
+                <th>Date Created</th>
+                <th>Staff</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var log in Model)
+            {
+                // Skip logs that have no Schedule or no EquipmentItem (general equipment or broken data)
+                if (log == null || log.Schedule == null || log.Schedule.EquipmentItemId == null)
+                {
+                    continue;
+                }
+
+                var itemName = log.Schedule.EquipmentItem?.EquipmentItemName ?? "N/A";
+                var remarks = log.Schedule.Remarks ?? "N/A";
+                var dateCreated = log.DateCreated?.ToString("yyyy-MM-dd") ?? "N/A";
+                var staffName = log.Schedule.Staff!.Name;
+
+                <tr>
+                    <td>@itemName</td>
+                    <td>@remarks</td>
+                    <td>@dateCreated</td>
+                    <td>@staffName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

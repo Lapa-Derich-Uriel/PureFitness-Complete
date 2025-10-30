@@ -1,0 +1,176 @@
+﻿@model PureFitness.ViewModels.ProfileViewModel
+@{
+    ViewBag.Title = "Account Profile";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow rounded-3">
+                <div class="card-header bg-dark text-white d-flex justify-content-between">
+                    <h4 class="mb-0">Account Profile</h4>
+                    <button id="editBtn" type="button" class="btn btn-warning btn-sm">Edit</button>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Update" asp-controller="Profile" method="post">
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="RoleName" />
+
+                        <!-- Username -->
+                        <div class="mb-3">
+                            <label class="fw-bold">Username</label>
+                            <input asp-for="Username" class="form-control editable" readonly />
+                        </div>
+
+                        <!-- Password -->
+                        <div class="mb-3">
+                            <label class="fw-bold">Password</label>
+                            <div class="password-wrapper">
+                                <input type="password" id="passwordInput" class="form-control" value="********" readonly />
+                                <button type="button" class="password-toggle btn btn-outline-secondary btn-sm" id="togglePassword" aria-label="Show password">
+                                    <i class="bi bi-eye" id="eyeIcon"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted d-block">
+                                Click the eye icon to show/hide the password or click "Edit" to set a new password.
+                            </small>
+                        </div>
+
+                        @if (Model.RoleName == "Member" && Model.Member != null)
+                        {
+                            <h5 class="mt-4">Member Details</h5>
+
+                            <!-- Editable fields -->
+                            <div class="mb-3">
+                                <label class="fw-bold">Email</label>
+                                <input asp-for="Email" class="form-control editable" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Phone Number</label>
+                                <input asp-for="Member.PhoneNumber" class="form-control editable" readonly />
+                            </div>
+
+                            <!-- Read-only fields -->
+                            <div class="mb-3">
+                                <label class="fw-bold">Address</label>
+                                <input asp-for="Member.Address" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Membership Type</label>
+                                <input asp-for="Member.MembershipType" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Membership Period</label>
+                                <input asp-for="Member.MembershipPeriod" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Due Date</label>
+                                <input asp-for="Member.DueDate" type="date" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Access Type</label>
+                                <input asp-for="Member.AccessType" class="form-control" readonly />
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="fw-bold">Weight (kg)</label>
+                                    <input asp-for="Member.Weight" class="form-control" readonly />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="fw-bold">Height (cm)</label>
+                                    <input asp-for="Member.Height" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="fw-bold">Age</label>
+                                    <input asp-for="Member.Age" class="form-control" readonly />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="fw-bold">BMI</label>
+                                    <input asp-for="Member.Bmi" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Fitness Goal</label>
+                                <input asp-for="Member.FitnessGoal" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Date Joined</label>
+                                <input asp-for="Member.DateJoined" type="date" class="form-control" readonly />
+                            </div>
+                        }
+                        else if (Model.RoleName == "Staff" && Model.Staff != null)
+                        {
+                            <h5 class="mt-4">Staff Details</h5>
+
+                            <div class="mb-3">
+                                <label class="fw-bold">Email</label>
+                                <input asp-for="Email" class="form-control editable" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Name</label>
+                                <input asp-for="Staff.Name" class="form-control editable" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Phone Number</label>
+                                <input asp-for="Staff.PhoneNumber" class="form-control editable" readonly />
+                            </div>
+                        }
+                        else if (Model.RoleName == "Admin")
+                        {
+                            <h5 class="mt-4">Admin Details</h5>
+                            <div class="mb-3">
+                                <label class="fw-bold">Email</label>
+                                <input asp-for="Email" class="form-control editable" readonly />
+                            </div>
+                        }
+
+                        <div class="text-end">
+                            <button id="saveBtn" type="submit" class="btn btn-success d-none">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const editBtn = document.getElementById("editBtn");
+            const saveBtn = document.getElementById("saveBtn");
+            const editableInputs = document.querySelectorAll(".editable");
+            const pwInput = document.getElementById("passwordInput");
+            const toggleBtn = document.getElementById("togglePassword");
+            const eyeIcon = document.getElementById("eyeIcon");
+
+            // Edit all editable fields + password
+            editBtn.addEventListener("click", function () {
+                editableInputs.forEach(i => i.removeAttribute("readonly"));
+                if (pwInput) {
+                    pwInput.removeAttribute("readonly");
+                    pwInput.value = "";
+                    pwInput.focus();
+                }
+                saveBtn.classList.remove("d-none");
+                editBtn.classList.add("d-none");
+            });
+
+            // Toggle show/hide password
+            if (toggleBtn && pwInput) {
+                toggleBtn.addEventListener("click", function () {
+                    if (pwInput.type === "password") {
+                        pwInput.type = "text";
+                        eyeIcon.classList.replace("bi-eye", "bi-eye-slash");
+                    } else {
+                        pwInput.type = "password";
+                        eyeIcon.classList.replace("bi-eye-slash", "bi-eye");
+                    }
+                });
+            }
+        });
+    </script>
+}

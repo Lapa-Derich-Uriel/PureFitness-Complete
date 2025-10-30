@@ -1,0 +1,1357 @@
+﻿@model PureFitness.ViewModels.PaymentViewModel
+
+@{
+    ViewBag.Title = "Payment Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <style>
+        body {
+            background-color: #F5F6FA;
+        }
+
+        .card-custom {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            margin-bottom: 24px;
+            transition: transform 0.15s ease;
+        }
+
+            .card-custom:hover {
+                transform: translateY(-3px);
+            }
+
+        .card-header-custom {
+            background: #2C2C2C;
+            color: white;
+            font-weight: 600;
+            padding: 14px 18px;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px 32px;
+            padding: 12px 20px;
+        }
+
+            .form-grid label {
+                font-weight: 600;
+                color: #333;
+            }
+
+        .form-control:focus {
+            border-color: #198754;
+            box-shadow: 0 0 0 0.15rem rgba(25, 135, 84, 0.25);
+        }
+
+        .btn-success {
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .modal-content {
+            border-radius: 12px;
+        }
+
+        .table th {
+            width: 45%;
+        }
+
+        .text-muted {
+            color: #6c757d !important;
+        }
+
+        .printable-receipt {
+            font-size: 15px;
+        }
+    </style>
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col">
+            <div class="card-custom mx-auto" style="max-width:1200px;">
+                <div class="card-header-custom">
+                    <i class="bi bi-wallet2 me-2"></i> Payment Management
+                </div>
+                <div class="card-body">
+                    <form id="paymentForm" asp-controller="Payment" asp-action="CreatePayment" method="post" novalidate>
+                        @Html.AntiForgeryToken()
+
+                        <div class="form-grid">
+                            <!-- Payment For -->
+                            <div>
+                                <label>Payment For</label>
+                                <select id="paymentType" name="PaymentType" class="form-control" required>
+                                    <option value="">-- Select Payment Type --</option>
+                                    <option value="Membership">Membership Renewal</option>
+                                    <option value="walkin">Walk-In</option>
+                                    <option value="initial">Initial Payment for Membership</option>
+                                    <option value="products">Products</option>
+                                </select>
+                                <!-- Product selection button (only visible when "Products" is chosen) -->
+                                <div id="selectProductsBtnContainer" style="display:none; margin-top:8px;">
+                                    <button type="button" id="openProductModalBtn" class="btn btn-outline-dark btn-sm">
+                                        <i class="bi bi-box-seam me-1"></i> Select Products
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Member (Membership) -->
+
+                            <div id="memberDiv">
+                                <label>Member Name</label>
+                                @if (Model.Members != null && Model.Members.Count == 1)
+                                {
+                                    var onlyMember = Model.Members.First();
+                                    <input type="text" class="form-control" value="@($"{onlyMember.Fname} {onlyMember.Lname}")" readonly />
+                                    <input type="hidden" id="singleMemberId" name="MemberId" value="@onlyMember.MemberId" />
+                                    <!-- hidden data for JS prefill -->
+                                    <input type="hidden" id="singleMemberData" data-membershipperiod="@(onlyMember.MembershipPeriod ?? "")"
+                                           data-access="@(onlyMember.AccessType ?? "")" data-membershiptype="@(onlyMember.MembershipType ?? "")" />
+                                }
+                                else if (Model.Members != null && Model.Members.Any())
+                                {
+                                    <select id="memberSelect" name="MemberId"
+                                            class="form-control">
+                                        <option value="">-- Select Member --</option>
+                                        @foreach (var m in Model.Members!)
+                                        { // use raw values, JS will normalize/parse them robustly
+                                            <option value="@m.MemberId" data-membershipperiod="@(m.MembershipPeriod ?? "")" data-access="@(m.AccessType ?? "")"
+                                                    data-membershiptype="@(m.MembershipType ?? "")" data-status="@m.Status" data-paidstatus="@m.PaidStatus"
+                                                    data-duedate="@(m.DueDate?.ToString("yyyy-MM-dd") ?? "")">
+                                                @($"{m.Fname} {m.Lname} ({m.Status}, {m.PaidStatus})")
+                                            </option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <p class="text-muted">No members available.</p>
+                                }
+                            </div>
+
+                            <!-- Walk-in -->
+
+                            <div id="walkinMemberDiv" style="display:none;">
+                                <label>Walk-In Name</label>
+                                <input id="walkinMemberName"
+                                       name="MemberName" class="form-control" placeholder="Enter walk-in name" />
+                            </div>
+
+                            <!-- Membership Type -->
+
+                            <div id="membershipTypeDiv">
+                                <label>Membership Type</label>
+                                <input type="text" id="membershipType" name="MembershipType" class="form-control" readonly />
+                            </div>
+
+                            <!-- Membership Period -->
+
+                            <div id="membershipPeriodDiv">
+                                <label>Membership Period</label>
+                                <select id="membershipPeriod" name="MembershipPeriod" class="form-control">
+                                    <option value="">-- Select Period --</option>
+                                    <option value="1month">1 Month</option>
+                                    <option value="3months">3 Months</option>
+                                    <option value="1year">1 Year</option>
+                                </select>
+                            </div>
+
+                            <!-- Access Type -->
+
+                            <div id="accessDiv">
+                                <label>Access Type</label>
+                                <select id="accessType" name="AccessType" class="form-control">
+                                    <option value="">-- Select Access --</option>
+                                    <option value="weights">Weights - ₱550</option>
+                                    <option value="weights_cardio">Weights + Cardio - ₱950</option>
+                                </select>
+                            </div>
+                            <!-- Walk-in Access -->
+
+                            <div id="walkinAccessDiv" style="display:none;">
+                                <label>Walk-in Access</label>
+                                <select id="walkinAccessType" name="AccessType" class="form-control">
+                                    <option value="">-- Select Access --</option>
+                                    <option value="weights">Weights - ₱50</option>
+                                    <option value="weights_cardio">Weights + Cardio - ₱100</option>
+                                </select>
+                            </div>
+
+                            <!-- Cost -->
+
+                            <div>
+                                <label>Cost</label>
+                                <input id="costInput" name="Cost" class="form-control" type="number" step="0.01" readonly />
+                            </div>
+
+                            <!-- Total Cost -->
+
+                            <div>
+                                <label>Total Cost</label>
+                                <input id="totalCostInput" name="TotalCost" class="form-control" type="number" step="0.01" readonly />
+                            </div>
+
+                            <!-- Amount Paid -->
+
+                            <div>
+                                <label>Amount Paid</label>
+                                <input id="amountPaidInput" name="Amount" class="form-control" type="number" step="0.01" />
+                            </div>
+
+                            <!-- Change -->
+
+                            <div> <label>Change</label> <input id="changeInput" name="Change" type="text" class="form-control" readonly /> </div>
+
+                            <!-- Date -->
+
+                            <div>
+                                <label>Date</label>
+                                <input id="dateInput" name="TransactionDate" class="form-control" type="text"
+                                       readonly value="@DateOnly.FromDateTime(DateTime.Now)" />
+                            </div>
+                        </div>
+
+                        <div class="mt-3 px-3 text-end">
+                            <button type="submit" class="btn btn-success px-4">
+                                <i class="bi bi-cash-stack me-1"></i> Save Payment
+                            </button>
+                        </div>
+                    </form>
+                    <div class="mt-4" id="productSummaryContainer" style="display:none;">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-cart-check"></i> Selected Products</h5>
+                        <table class="table table-bordered" id="selectedProductsTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Qty</th>
+                                    <th>Price (₱)</th>
+                                    <th>Total (₱)</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <input type="hidden" id="productItemsInput" name="Items" />
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="modal fade" id="receiptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="bi bi-receipt"></i> Payment Receipt</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body printable-receipt">
+                <div class="text-center mb-3">
+                    <h5 class="fw-bold mb-0">PureFitness Gym</h5>
+                    <small class="text-muted">Official Receipt</small>
+                </div>
+                <hr>
+
+                <p><strong>Date:</strong> <span id="rDate"></span></p>
+                <p><strong>Member:</strong> <span id="rMemberName"></span></p>
+                <p><strong>Payment For:</strong> <span id="rPaymentFor"></span></p>
+
+                <!-- PRODUCT SECTION -->
+                <div id="receiptProductSection" style="display:none;">
+                    <h6 class="fw-bold mt-3">Purchased Products</h6>
+                    <table class="table table-sm table-bordered mt-2 text-center">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>Product</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receiptProductList"></tbody>
+                    </table>
+                </div>
+
+                <!-- MEMBERSHIP / WALK-IN SECTION -->
+                <div id="receiptMembershipSection" style="display:none;">
+                    <h6 class="fw-bold mt-3">Membership / Walk-In Details</h6>
+                    <p><strong>Membership Type:</strong> <span id="rMembershipType"></span></p>
+                    <p><strong>Period:</strong> <span id="rMembershipPeriod"></span></p>
+                    <p><strong>Access Type:</strong> <span id="rAccessType"></span></p>
+                </div>
+
+                <hr>
+                <p><strong>Cost:</strong> ₱<span id="rCost"></span></p>
+                <p><strong>Total:</strong> ₱<span id="rTotalCost"></span></p>
+                <p><strong>Amount Paid:</strong> ₱<span id="rAmountPaid"></span></p>
+                <p><strong>Change:</strong> ₱<span id="rChange"></span></p>
+            </div>
+
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button id="confirmReceiptBtn" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Confirm</button>
+                <button id="printReceiptBtn" type="button" class="btn btn-dark">
+                    <i class="bi bi-printer me-1"></i> Print
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Selection Modal -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="bi bi-box-seam"></i> Select Products</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-bordered align-middle" id="productTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Price (₱)</th>
+                            <th>Quantity</th>
+                            <th>Total (₱)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.Products ?? Enumerable.Empty<PureFitness.Models.Inventory>())
+                        {
+                            <tr data-productid="@p.InventoryId"
+                                data-name="@p.Product!.ProductName"
+                                data-price="@p.Product!.ProductPrice"
+                                data-stock="@p.ProductQuantity">
+                                <td>@p.Product!.ProductName</td>
+                                <td>@p.Product!.ProductPrice</td>
+                                <td><input type="number" class="form-control qty-input" value="0" min="0" max="@p.ProductQuantity" /></td>
+                                <td class="product-total">0.00</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-success" id="doneProductSelection">
+                    <i class="bi bi-check2 me-1"></i> Done
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!--PRICING CONSTANTS-->
+    <script>
+        const PRICING = {
+            walkin: { weights: 50, weights_cardio: 100 },
+            membership: {
+                "1month": { weights: 550, weights_cardio: 950 },
+                "3months": { any: 2700 },
+                "1year": { any: 11000 }
+            }
+        };
+
+        function formatCurrency(n) {
+            if (n == null || n === "") return "";
+            return "₱" + parseFloat(n).toFixed(2);
+        }
+
+        // Helper: normalizes a membership period free-text into '1month' | '3months' | '1year' | ''
+        function normalizePeriod(raw) {
+            if (!raw) return "";
+            const s = String(raw).toLowerCase().trim();
+            if (s.includes("1year") || s.includes("1 year") || s.includes("12") || s.includes("year")) return "1year";
+            if (s.includes("3") || s.includes("3months") || s.includes("3 months")) return "3months";
+            if (s.includes("1month") || s.includes("1 month") || s === "monthly" || s.includes("month")) {
+                // ensure 1month only if not 3months or 12
+                if (s.includes("3") || s.includes("12")) {
+                    // fallthrough to above detection
+                }
+                return "1month";
+            }
+            return "";
+        }
+
+        // Helper: normalize access type into 'weights' | 'weights_cardio' | ''
+        function normalizeAccess(raw) {
+            if (!raw) return "";
+            const s = String(raw).toLowerCase().trim();
+            if (s.includes("cardio") || s.includes("weights and cardio") || s.includes("weights+cardio")) return "weights_cardio";
+            if (s.includes("weight") || s.includes("weights")) return "weights";
+            return "";
+        }
+    </script>
+
+    <!--PAYMENT TYPE SWITCHER-->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const paymentTypeEl = document.getElementById("paymentType");
+            const memberDiv = document.getElementById("memberDiv");
+            const walkinDiv = document.getElementById("walkinMemberDiv");
+            const walkinAccessDiv = document.getElementById("walkinAccessDiv");
+            const membershipTypeDiv = document.getElementById("membershipTypeDiv");
+            const membershipPeriodDiv = document.getElementById("membershipPeriodDiv");
+            const accessDiv = document.getElementById("accessDiv");
+            const membershipTypeInput = document.getElementById("membershipType");
+            const membershipPeriod = document.getElementById("membershipPeriod");
+            const accessType = document.getElementById("accessType");
+            const costInput = document.getElementById("costInput");
+            const totalCostInput = document.getElementById("totalCostInput");
+            const amountPaidInput = document.getElementById("amountPaidInput");
+            const changeInput = document.getElementById("changeInput");
+
+            function resetMembershipFields() {
+                if (membershipTypeInput) membershipTypeInput.value = "";
+                if (membershipPeriod) membershipPeriod.value = "";
+                if (accessType) accessType.value = "";
+                if (costInput) costInput.value = "";
+                if (totalCostInput) totalCostInput.value = "";
+                if (amountPaidInput) amountPaidInput.value = "";
+                if (changeInput) changeInput.value = "";
+            }
+
+            function showForWalkin() {
+                if (memberDiv) memberDiv.style.display = "none";
+                if (walkinDiv) walkinDiv.style.display = "block";
+                if (walkinAccessDiv) walkinAccessDiv.style.display = "block";
+                if (membershipTypeDiv) membershipTypeDiv.style.display = "none";
+                if (membershipPeriodDiv) membershipPeriodDiv.style.display = "none";
+                if (accessDiv) accessDiv.style.display = "none";
+
+                if (membershipTypeInput) membershipTypeInput.value = "Not Applicable";
+                if (membershipPeriod) membershipPeriod.value = "N/A";
+            }
+
+            function showForMembership() {
+                if (memberDiv) memberDiv.style.display = "block";
+                if (walkinDiv) walkinDiv.style.display = "none";
+                if (walkinAccessDiv) walkinAccessDiv.style.display = "none";
+                if (membershipTypeDiv) membershipTypeDiv.style.display = "block";
+                if (membershipPeriodDiv) membershipPeriodDiv.style.display = "block";
+                if (accessDiv) accessDiv.style.display = "block";
+            }
+
+            function onPaymentTypeChange() {
+                if (!paymentTypeEl) return;
+                const v = (paymentTypeEl.value || "").toLowerCase();
+                resetMembershipFields();
+
+                if (v === "walkin") {
+                    showForWalkin();
+                    return;
+                }
+
+                if (v === "products") {
+                    // Hide all membership-related & walk-in fields
+                    if (memberDiv) memberDiv.style.display = "none";
+                    if (walkinDiv) walkinDiv.style.display = "none";
+                    if (walkinAccessDiv) walkinAccessDiv.style.display = "none";
+                    if (membershipTypeDiv) membershipTypeDiv.style.display = "none";
+                    if (membershipPeriodDiv) membershipPeriodDiv.style.display = "none";
+                    if (accessDiv) accessDiv.style.display = "none";
+
+                    // Reset related inputs
+                    if (membershipTypeInput) membershipTypeInput.value = "";
+                    if (membershipPeriod) membershipPeriod.value = "";
+                    if (accessType) accessType.value = "";
+
+                    // Clear product summary/input (product modal handles adding items)
+                    const productSummaryContainer = document.getElementById("productSummaryContainer");
+                    const productItemsInput = document.getElementById("productItemsInput");
+                    if (productSummaryContainer) productSummaryContainer.style.display = "none";
+                    if (productItemsInput) productItemsInput.value = "";
+
+                    return;
+                }
+
+                // default: membership/initial
+                showForMembership();
+            }
+
+            if (paymentTypeEl) {
+                paymentTypeEl.addEventListener("change", onPaymentTypeChange);
+                // init
+                onPaymentTypeChange();
+            }
+        });
+    </script>
+
+    <!--MEMBER SELECTION (single or select)-->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const memberSelect = document.getElementById("memberSelect");
+            const singleMemberData = document.getElementById("singleMemberData"); // hidden data for single member case
+            const membershipTypeInput = document.getElementById("membershipType");
+            const membershipPeriod = document.getElementById("membershipPeriod");
+            const accessType = document.getElementById("accessType");
+
+            function applyMemberData(rawPeriod, rawAccess, rawMembershipType) {
+                const normPeriod = normalizePeriod(rawPeriod);
+                const normAccess = normalizeAccess(rawAccess);
+
+                if (membershipTypeInput) membershipTypeInput.value = rawMembershipType || "";
+
+                if (membershipPeriod) membershipPeriod.value = normPeriod || "";
+                // if 1month, set access accordingly, else leave for period handler
+                if (normPeriod === "1month") {
+                    if (accessType) accessType.value = normAccess || "";
+                } else {
+                    // for 3months/1year, set access to weights_cardio for consistent display (and will be disabled)
+                    if (normPeriod === "3months" || normPeriod === "1year") {
+                        if (accessType) accessType.value = "weights_cardio";
+                    } else {
+                        if (accessType) accessType.value = normAccess || "";
+                    }
+                }
+
+                // trigger period change so cost logic runs
+                if (membershipPeriod) membershipPeriod.dispatchEvent(new Event("change"));
+            }
+
+            // handle change when there is a select dropdown
+            function onMemberChangeSelect() {
+                if (!memberSelect) return;
+                const sel = memberSelect.options[memberSelect.selectedIndex];
+                if (!sel || !sel.value) {
+                    // cleared
+                    if (membershipTypeInput) membershipTypeInput.value = "";
+                    if (membershipPeriod) membershipPeriod.value = "";
+                    if (accessType) accessType.value = "";
+                    return;
+                }
+
+                const rawPeriod = sel.dataset.membershipperiod || "";
+                const rawAccess = sel.dataset.access || "";
+                const rawMembershipType = sel.dataset.membershiptype || "";
+                applyMemberData(rawPeriod, rawAccess, rawMembershipType);
+            }
+
+            // Handle single member case at load if present
+            if (singleMemberData) {
+                const rawPeriod = singleMemberData.dataset.membershipperiod || "";
+                const rawAccess = singleMemberData.dataset.access || "";
+                const rawMembershipType = singleMemberData.dataset.membershiptype || "";
+                // Only prefill if UI is in membership mode (if page defaults to Walk-In user still sees Not Applicable)
+                applyMemberData(rawPeriod, rawAccess, rawMembershipType);
+            }
+
+            if (memberSelect) {
+                memberSelect.addEventListener("change", onMemberChangeSelect);
+            }
+        });
+    </script>
+
+    <!--MEMBERSHIP PERIOD / ACCESS: calculate cost -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const membershipPeriod = document.getElementById("membershipPeriod");
+            const accessType = document.getElementById("accessType");
+            const membershipTypeInput = document.getElementById("membershipType");
+            const costInput = document.getElementById("costInput");
+            const totalCostInput = document.getElementById("totalCostInput");
+
+            function onMembershipPeriodChange() {
+                if (!membershipPeriod) return;
+                const period = (membershipPeriod.value || "").toLowerCase();
+
+                if (period === "1year") {
+                    if (accessType) accessType.value = "weights_cardio";
+                    if (accessType) accessType.disabled = true;
+                    costInput.value = totalCostInput.value = PRICING.membership["1year"].any;
+                    if (membershipTypeInput && !membershipTypeInput.value) membershipTypeInput.value = "Premium";
+                } else if (period === "3months") {
+                    if (accessType) accessType.value = "weights_cardio";
+                    if (accessType) accessType.disabled = true;
+                    costInput.value = totalCostInput.value = PRICING.membership["3months"].any;
+                    if (membershipTypeInput && !membershipTypeInput.value) membershipTypeInput.value = "Premium";
+                } else if (period === "1month") {
+                    if (accessType) accessType.disabled = false;
+                    // if accessType has value, trigger access handler to compute cost
+                    if (accessType && accessType.value) {
+                        accessType.dispatchEvent(new Event("change"));
+                    } else {
+                        costInput.value = "";
+                        totalCostInput.value = "";
+                    }
+                    if (membershipTypeInput && !membershipTypeInput.value) membershipTypeInput.value = "Regular";
+                } else {
+                    // none selected
+                    if (accessType) accessType.disabled = false;
+                    costInput.value = "";
+                    totalCostInput.value = "";
+                }
+            }
+
+            function onAccessTypeChange() {
+                if (!accessType || !membershipPeriod) return;
+                const period = (membershipPeriod.value || "").toLowerCase();
+                const access = (accessType.value || "").toLowerCase();
+                if (period === "1month") {
+                    if (access === "weights") {
+                        costInput.value = totalCostInput.value = PRICING.membership["1month"].weights;
+                    } else if (access === "weights_cardio") {
+                        costInput.value = totalCostInput.value = PRICING.membership["1month"].weights_cardio;
+                    } else {
+                        costInput.value = "";
+                        totalCostInput.value = "";
+                    }
+                } // otherwise 3months/1year already handled by period handler
+            }
+
+            if (membershipPeriod) membershipPeriod.addEventListener("change", onMembershipPeriodChange);
+            if (accessType) accessType.addEventListener("change", onAccessTypeChange);
+        });
+    </script>
+
+    <!--WALK-IN ACCESS cost-->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const walkinAccessType = document.getElementById("walkinAccessType");
+            const costInput = document.getElementById("costInput");
+            const totalCostInput = document.getElementById("totalCostInput");
+
+            function onWalkinAccessChange() {
+                if (!walkinAccessType) return;
+                const val = walkinAccessType.value;
+                costInput.value = totalCostInput.value = PRICING.walkin[val] || "";
+            }
+
+            if (walkinAccessType) walkinAccessType.addEventListener("change", onWalkinAccessChange);
+        });
+    </script>
+
+    <!--AMOUNT / CHANGE calculation-->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const amountPaidInput = document.getElementById("amountPaidInput");
+            const totalCostInput = document.getElementById("totalCostInput");
+            const changeInput = document.getElementById("changeInput");
+
+            function onAmountChange() {
+                if (!amountPaidInput || !totalCostInput || !changeInput) return;
+                const paid = parseFloat(amountPaidInput.value || "0");
+                const total = parseFloat(totalCostInput.value || "0");
+                if (isNaN(paid) || isNaN(total)) { changeInput.value = ""; return; }
+                changeInput.value = (paid - total).toFixed(2);
+            }
+
+            if (amountPaidInput) amountPaidInput.addEventListener("input", onAmountChange);
+        });
+    </script>
+
+    <!--Button to open modal view-->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const paymentTypeEl = document.getElementById("paymentType");
+            const openProductModalBtn = document.getElementById("openProductModalBtn");
+            const selectProductsBtnContainer = document.getElementById("selectProductsBtnContainer");
+            const productModal = new bootstrap.Modal(document.getElementById("productModal"));
+
+            // Toggle visibility of the button based on payment type
+            function toggleProductButton() {
+                const type = (paymentTypeEl.value || "").toLowerCase();
+                selectProductsBtnContainer.style.display = (type === "products") ? "block" : "none";
+            }
+
+            if (paymentTypeEl) {
+                paymentTypeEl.addEventListener("change", toggleProductButton);
+                toggleProductButton(); // initialize on page load
+            }
+
+            if (openProductModalBtn) {
+                openProductModalBtn.addEventListener("click", () => {
+                    productModal.show();
+                });
+            }
+        });
+    </script>
+
+    <!-- Product Modal popup after select (robust: Done saves, X/backdrop/ESC only close) -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const paymentTypeEl = document.getElementById("paymentType");
+            const productModalEl = document.getElementById("productModal");
+            if (!productModalEl) return;
+
+            // ensure single consistent bootstrap modal instance
+            const productModal = bootstrap.Modal.getOrCreateInstance(productModalEl);
+
+            const productSummaryContainer = document.getElementById("productSummaryContainer");
+            const selectedProductsTable = document.querySelector("#selectedProductsTable tbody");
+            const costInput = document.getElementById("costInput");
+            const totalCostInput = document.getElementById("totalCostInput");
+            const productItemsInput = document.getElementById("productItemsInput");
+
+            let saveOnClose = false; // only true when user clicks DONE
+
+            function recalcProductRow(row) {
+                if (!row) return;
+                const qtyInput = row.querySelector(".qty-input");
+                const qty = parseInt(qtyInput?.value || "0", 10) || 0;
+                const price = parseFloat(row.dataset.price || "0") || 0;
+                const stock = parseInt(row.dataset.stock || "0", 10) || 0;
+
+                if (qty < 0) qtyInput.value = 0;
+                if (qty > stock) qtyInput.value = stock;
+
+                const totalCell = row.querySelector(".product-total");
+                if (totalCell) totalCell.textContent = (qty * price).toFixed(2);
+            }
+
+            function calculateTotalAndSummary() {
+                let total = 0;
+                const items = [];
+                if (selectedProductsTable) selectedProductsTable.innerHTML = "";
+
+                document.querySelectorAll("#productTable tbody tr").forEach(row => {
+                    const qty = parseInt(row.querySelector(".qty-input")?.value || "0", 10) || 0;
+                    const price = parseFloat(row.dataset.price || "0") || 0;
+                    const stock = parseInt(row.dataset.stock || "0", 10) || 0;
+                    const name = row.dataset.name || (row.querySelector("td")?.textContent?.trim() || "");
+                    const id = row.dataset.productid || null;
+
+                    if (qty > 0 && qty <= stock) {
+                        const subtotal = qty * price;
+                        total += subtotal;
+                                items.push({
+                                    InventoryId: parseInt(id),
+                                    name,
+                                    qty,
+                                    price,
+                                    subtotal
+                                });
+
+                        if (selectedProductsTable) {
+                            const tr = document.createElement("tr");
+                            // escape minimal: avoid injecting raw HTML from server-sourced names
+                            tr.innerHTML = `
+                                <td>${escapeHtml(name)}</td>
+                                <td>${qty}</td>
+                                <td>${price.toFixed(2)}</td>
+                                <td>${subtotal.toFixed(2)}</td>
+                            `;
+                            selectedProductsTable.appendChild(tr);
+                        }
+                    }
+                });
+
+                if (costInput) costInput.value = total.toFixed(2);
+                if (totalCostInput) totalCostInput.value = total.toFixed(2);
+                if (productItemsInput) productItemsInput.value = JSON.stringify(items);
+
+                if (productSummaryContainer) productSummaryContainer.style.display = items.length > 0 ? "block" : "none";
+            }
+
+            function escapeHtml(s) {
+                return String(s || "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#39;");
+            }
+
+            // wire qty inputs (idempotent)
+            function wireQtyInputs() {
+                document.querySelectorAll("#productTable .qty-input").forEach(input => {
+                    if (input.dataset.wired === "1") return;
+                    input.addEventListener("input", function () {
+                        const row = input.closest("tr");
+                        recalcProductRow(row);
+                    });
+                    input.dataset.wired = "1";
+                    // initialize totals if non-zero
+                    const row = input.closest("tr");
+                    if (row) recalcProductRow(row);
+                });
+            }
+
+            // Initial wiring
+            wireQtyInputs();
+
+            // ---- Behavior: only save when DONE clicked ----
+
+            // hidden.bs.modal: run the summary only if saveOnClose flagged by DONE
+            productModalEl.addEventListener("hidden.bs.modal", () => {
+                try {
+                    if (saveOnClose) {
+                        calculateTotalAndSummary();
+                    }
+                } finally {
+                    // always reset
+                    saveOnClose = false;
+                }
+            });
+
+            // Payment type change: open modal on products, otherwise clear product data
+            if (paymentTypeEl) {
+                paymentTypeEl.addEventListener("change", () => {
+                    const type = (paymentTypeEl.value || "").toLowerCase();
+                    if (type === "products") {
+                        wireQtyInputs(); // ensure listeners
+                        productModal.show();
+                    } else {
+                        if (productSummaryContainer) productSummaryContainer.style.display = "none";
+                        if (costInput) costInput.value = "";
+                        if (totalCostInput) totalCostInput.value = "";
+                        if (productItemsInput) productItemsInput.value = "";
+                    }
+                });
+            }
+
+            // DONE button: mark save flag then close the modal
+            const doneBtn = document.getElementById("doneProductSelection");
+            if (doneBtn) {
+                doneBtn.addEventListener("click", () => {
+                     wireQtyInputs();
+                     document.querySelectorAll("#productTable tbody tr").forEach(recalcProductRow);
+
+                     // ✅ Calculate immediately before hiding
+                     calculateTotalAndSummary();
+
+                     productModal.hide();
+                });
+            }
+
+            // X button & any element that should close WITHOUT saving:
+            // we intercept clicks on any [data-bs-dismiss="modal"] inside this modal and ensure it hides the modal WITHOUT setting saveOnClose
+            const dismissButtons = Array.from(productModalEl.querySelectorAll("[data-bs-dismiss='modal'], .btn-close"));
+            dismissButtons.forEach(btn => {
+                // remove any existing handlers we might have added earlier to prevent duplicates
+                btn.addEventListener("click", function (ev) {
+                    // ensure we do NOT save on close
+                    saveOnClose = false;
+
+                    // If Bootstrap was not closing the modal automatically for some reason, force it using the same instance.
+                    // We call hide() after a microtask so we don't conflict with Bootstrap's own click handling.
+                    // But if Bootstrap will handle it, calling hide() again is safe (idempotent).
+                    Promise.resolve().then(() => {
+                        try { productModal.hide(); } catch (e) { /* ignore */ }
+                    });
+                });
+            });
+
+            // Backdrop click or ESC: some browsers/bootstrap versions hide modal automatically.
+            // We'll also watch clicks on the modal element itself (backdrop click detection).
+            productModalEl.addEventListener("click", function (ev) {
+                // if the click target is the modal container (outside .modal-dialog), treat as dismiss without save
+                if (ev.target === productModalEl) {
+                    saveOnClose = false;
+                    // ensure hide via same instance
+                    try { productModal.hide(); } catch (e) { /* ignore */ }
+                }
+            });
+
+            // ESC key: when modal is visible, treat as dismiss without save
+            window.addEventListener("keydown", function (ev) {
+                if (ev.key === "Escape" || ev.key === "Esc") {
+                    // only act if modal is currently open/visible
+                    if (productModalEl.classList.contains("show")) {
+                        saveOnClose = false;
+                        try { productModal.hide(); } catch (e) { /* ignore */ }
+                    }
+                }
+            });
+        });
+    </script>
+
+    <!-- Receipt Form -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("paymentForm");
+            if (!form) return;
+
+            const fmt = n => Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 });
+
+            // Store the last saved payment type for redirect
+            let lastPaymentType = null;
+
+            form.addEventListener("submit", async ev => {
+                ev.preventDefault();
+                const fd = new FormData(form);
+
+                // Normalize numeric fields if they exist as non-prefixed names in FormData (some inputs might use payment.SomeName)
+                // But we should ensure the actual keys the server binds are prefixed (payment.*)
+                // We'll set payment.Items explicitly below if products.
+
+                // Format transaction date (if present)
+                const dateVal = fd.get("payment.TransactionDate") || fd.get("TransactionDate");
+                if (dateVal) {
+                    const d = new Date(dateVal);
+                    if (!isNaN(d)) {
+                        // set both variants to be safe
+                        fd.set("TransactionDate", d.toISOString().split("T")[0]);
+                    }
+                }
+
+                // Determine payment type from form fields (check both variants)
+                const paymentTypeRaw = fd.get("payment.PaymentType") || fd.get("PaymentType") || "";
+                const paymentType = String(paymentTypeRaw).toLowerCase();
+
+                // Attach Items for membership, walkin, products, etc.
+                if (paymentType === "membership") {
+                    const membershipType = fd.get("payment.MembershipType") || fd.get("MembershipType") || "";
+                    const period = fd.get("payment.MembershipPeriod") || fd.get("MembershipPeriod") || "";
+                    const accessType = fd.get("payment.AccessType") || fd.get("AccessType") || "";
+                    const itemsVal = `${membershipType} ${period} ${accessType}`.trim();
+                    fd.set("Items", itemsVal);
+                }
+
+                if (paymentType === "walkin") {
+                    const walkinNameEl = document.getElementById("walkinMemberName");
+                    const walkinName = walkinNameEl ? walkinNameEl.value : (fd.get("payment.MemberName") || fd.get("MemberName") || "Walk-in Customer");
+                    fd.set("MemberName", walkinName);
+                }
+
+                if (paymentType === "products") {
+                    // Prefer the hidden input value (the UI already wrote JSON there),
+                    // fallback to window.currentProductCart if present.
+                    const hidden = document.getElementById("productItemsInput");
+                    let itemsJson = "";
+                    if (hidden && hidden.value) {
+                        itemsJson = hidden.value;
+                    } else if (Array.isArray(window.currentProductCart) && window.currentProductCart.length > 0) {
+                        itemsJson = JSON.stringify(window.currentProductCart);
+                    }
+                    if (itemsJson) {
+                        // Set both variants just to be safe:
+                        fd.set("Items", itemsJson);
+                    }
+                }
+
+                try {
+                    const res = await fetch(form.action, {
+                        method: "POST",
+                        body: fd,
+                        credentials: "same-origin",
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest"
+                        }
+                    });
+
+                    if (!res.ok) {
+                        const text = await res.text();
+                        throw new Error(`Server error ${res.status}: ${text}`);
+                    }
+
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.message || "Payment failed.");
+
+                    const r = data.receipt || {};
+                    lastPaymentType = (r.paymentType || paymentType).toLowerCase();
+
+                    // Fill receipt modal UI (same as before)...
+                    document.getElementById("rDate").textContent = r.transactionDate || new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' });
+                    document.getElementById("rPaymentFor").textContent = r.paymentType || "";
+                    document.getElementById("rMemberName").textContent = r.memberName || (fd.get("payment.MemberName") || fd.get("MemberName") || "");
+
+                    const prodSection = document.getElementById("receiptProductSection");
+                    const memSection = document.getElementById("receiptMembershipSection");
+                    const listEl = document.getElementById("receiptProductList");
+                    prodSection.style.display = "none";
+                    memSection.style.display = "none";
+                    listEl.innerHTML = "";
+
+                    let computedTotal = 0;
+
+                    if (lastPaymentType === "products") {
+                        prodSection.style.display = "block";
+                        const rawProducts = JSON.parse(r.items || fd.get("payment.Items") || "[]");
+                        rawProducts.forEach(p => {
+                            const tr = document.createElement("tr");
+                            tr.innerHTML = `<td>${p.name}</td><td>${p.qty}</td><td>₱${fmt(p.price)}</td><td>₱${fmt(p.subtotal)}</td>`;
+                            listEl.appendChild(tr);
+                            computedTotal += Number(p.subtotal || 0);
+                        });
+                    } else {
+                        memSection.style.display = "block";
+                        document.getElementById("rMembershipType").textContent = fd.get("payment.MembershipType") || fd.get("MembershipType") || "N/A";
+                        const mp = fd.get("payment.MembershipPeriod") || fd.get("MembershipPeriod") || "";
+                        document.getElementById("rMembershipPeriod").textContent =
+                            mp === "1month" ? "1 Month" :
+                            mp === "3months" ? "3 Months" :
+                            mp === "1year" ? "1 Year" : "N/A";
+                        document.getElementById("rAccessType").textContent = fd.get("payment.AccessType") || fd.get("AccessType") || "";
+                        computedTotal = Number(r.totalCost || fd.get("payment.TotalCost") || fd.get("TotalCost") || 0);
+                    }
+
+                    const totalValue = computedTotal || Number(r.totalCost || 0);
+                    const paidValue = Number(r.amount ?? fd.get("payment.Amount") ?? fd.get("Amount") ?? 0);
+                    const changeValue = paidValue - totalValue;
+
+                    document.getElementById("rCost").textContent = fmt(totalValue);
+                    document.getElementById("rTotalCost").textContent = fmt(totalValue);
+                    document.getElementById("rAmountPaid").textContent = fmt(paidValue);
+                    document.getElementById("rChange").textContent = fmt(changeValue);
+
+                    // Show receipt modal
+                    new bootstrap.Modal(document.getElementById("receiptModal")).show();
+
+                    // Reset form/UI after showing receipt
+                    setTimeout(() => {
+                        form.reset();
+                        if (window.currentProductCart) window.currentProductCart = [];
+                        // Clear the product hidden input value too
+                        const hidden = document.getElementById("productItemsInput");
+                        if (hidden) hidden.value = "";
+                    }, 500);
+                } catch (err) {
+                    console.error("Payment submit error:", err);
+                    alert("Something went wrong while saving payment:\n" + err.message);
+                }
+            });
+
+            // Confirm redirect button (as you had)
+            const confirmBtn = document.getElementById("confirmReceiptBtn");
+            if (confirmBtn) {
+                confirmBtn.addEventListener("click", function () {
+                    if (lastPaymentType === "membership" || lastPaymentType === "initial") {
+                        window.location.href = "/Membership/MemberList";
+                    } else if (lastPaymentType === "walkin") {
+                        window.location.href = "/Attendance/AttendanceList";
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- PRINT RECEIPT -->
+    <script>
+        (() => {
+            function printReceipt() {
+                const receipt = document.querySelector(".printable-receipt");
+                if (!receipt) {
+                    alert("No receipt found to print.");
+                    return;
+                }
+
+                const clone = receipt.cloneNode(true);
+                const printWindow = window.open("", "_blank", "width=800,height=900");
+                if (!printWindow) {
+                    alert("Popup blocked! Please allow popups for this site to print receipts.");
+                    return;
+                }
+
+                printWindow.document.open();
+                printWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>PureFitness Gym - Official Receipt</title>
+                        <link rel="stylesheet" type="text/css" href="${window.location.origin}/css/print.css">
+                    </head>
+                    <body>${clone.outerHTML}</body>
+                    </html>
+                `);
+                printWindow.document.close();
+
+                printWindow.onload = function () {
+                    setTimeout(() => {
+                        printWindow.focus();
+                        printWindow.print();
+                        printWindow.onafterprint = () => printWindow.close();
+                    }, 300);
+                };
+            }
+
+            document.addEventListener("click", function (ev) {
+                const target = ev.target.closest("#printReceiptBtn");
+                if (target) {
+                    ev.preventDefault();
+                    printReceipt();
+                }
+            });
+        })();
+    </script>
+
+    <!-- PRINT BUTTON -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const printBtn = document.getElementById("printReceiptBtn");
+            const receiptModal = document.getElementById("receiptModal");
+
+            if (printBtn) {
+                printBtn.addEventListener("click", function () {
+                    const printContents = receiptModal.querySelector(".modal-body").innerHTML;
+                    const printWindow = window.open("", "_blank", "width=700,height=900");
+                    printWindow.document.write(`
+                        <html>
+                            <head>
+                                <title>Payment Receipt</title>
+                                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+                                <style>
+                                    body { font-family: Arial, sans-serif; padding: 20px; }
+                                    h5 { font-weight: bold; margin-bottom: 0; }
+                                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                                    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+                                    .text-center { text-align: center; }
+                                    .fw-bold { font-weight: bold; }
+                                    hr { border: 1px solid #ccc; }
+                                </style>
+                            </head>
+                            <body>
+                                ${printContents}
+                                <hr>
+                                <p class="text-center mt-4">Thank you for your payment!</p>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                    printWindow.focus();
+                    printWindow.print();
+                });
+            }
+        });
+    </script>
+
+    <!--Resets to default state-->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const receiptModal = document.getElementById("receiptModal");
+            const paymentForm = document.getElementById("paymentForm");
+
+            if (!receiptModal || !paymentForm) return;
+
+            receiptModal.addEventListener("hidden.bs.modal", function () {
+                // Reset main form
+                paymentForm.reset();
+
+                // Reset all number/text fields
+                document.querySelectorAll(".form-control").forEach(input => {
+                    if (["number", "text", "textarea"].includes(input.type) || input.tagName === "TEXTAREA") {
+                        input.value = "";
+                    }
+                });
+
+                // Reset all selects to default
+                document.querySelectorAll("select").forEach(sel => sel.selectedIndex = 0);
+
+                // Reset totals
+                ["Cost", "TotalCost", "Amount", "Change"].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = "";
+                });
+
+                // Reset labels
+                const memberLabel = document.getElementById("memberNameLabel");
+                if (memberLabel) memberLabel.textContent = "No members available.";
+
+                // Hide sections
+                ["membershipSection", "productSection", "walkinSection"].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = "none";
+                });
+
+                // Disable dependent fields
+                ["MembershipType", "MembershipPeriod", "AccessType", "MemberId"].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.disabled = true;
+                });
+
+                // 🧹 Clear product cart & table
+                window.currentProductCart = [];
+                const productTableBody = document.querySelector("#productSection table tbody");
+                if (productTableBody) productTableBody.innerHTML = ""; // remove all rows
+                document.querySelectorAll(".product-total").forEach(td => td.textContent = "0.00");
+
+                // Reset Payment Type dropdown to default
+                const paymentType = document.getElementById("PaymentType");
+                if (paymentType) paymentType.selectedIndex = 0;
+
+                // Hide receipt sections
+                ["receiptProductSection", "receiptMembershipSection"].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = "none";
+                });
+
+                console.log("✅ Payment form reset to default.");
+            });
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const paymentType = document.getElementById("PaymentType");
+            const memberName = document.getElementById("MemberName");
+            const membershipSection = document.getElementById("membershipSection");
+            const productSection = document.getElementById("productSection");
+            const walkinSection = document.getElementById("walkinSection");
+
+            const membershipPeriod = document.getElementById("MembershipPeriod");
+            const accessType = document.getElementById("AccessType");
+            const memberDropdown = document.getElementById("MemberId");
+
+            if (!paymentType) return;
+
+            paymentType.addEventListener("change", function () {
+                const selected = this.value.toLowerCase();
+
+                // Hide all sections first
+                [membershipSection, productSection, walkinSection].forEach(sec => {
+                    if (sec) sec.style.display = "none";
+                });
+
+                // Reset editability
+                if (memberName) memberName.readOnly = true;
+                if (membershipPeriod) membershipPeriod.readOnly = false;
+                if (accessType) accessType.readOnly = false;
+                if (memberDropdown) memberDropdown.disabled = false;
+
+                switch (selected) {
+                    case "initial":
+                        if (membershipSection) membershipSection.style.display = "block";
+                        if (membershipPeriod) membershipPeriod.readOnly = true;
+                        if (accessType) accessType.readOnly = true;
+                        if (memberName) memberName.readOnly = true;
+                        if (memberDropdown) memberDropdown.disabled = false; // keep dropdown usable
+                        break;
+
+                    case "membership":
+                        if (membershipSection) membershipSection.style.display = "block";
+                        if (membershipPeriod) membershipPeriod.readOnly = false;
+                        if (accessType) accessType.readOnly = false;
+                        if (memberName) memberName.readOnly = true;
+                        break;
+
+                    case "walkin":
+                        if (walkinSection) walkinSection.style.display = "block";
+                        if (memberDropdown) memberDropdown.disabled = true; // no need to select member
+                        if (memberName) {
+                            memberName.readOnly = false;
+                            memberName.value = "";
+                        }
+                        break;
+
+                    case "products":
+                        if (productSection) productSection.style.display = "block";
+                        if (memberName) memberName.readOnly = true;
+                        if (memberDropdown) memberDropdown.disabled = true;
+                        break;
+
+                    default:
+                        // Reset everything to safe state
+                        if (memberName) memberName.readOnly = true;
+                        if (memberDropdown) memberDropdown.disabled = true;
+                        [membershipSection, productSection, walkinSection].forEach(sec => {
+                            if (sec) sec.style.display = "none";
+                        });
+                        break;
+                }
+            });
+        });
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const confirmBtn = document.getElementById("confirmReceiptBtn");
+            const paymentTypeSelect = document.getElementById("paymentType");
+
+            confirmBtn.addEventListener("click", function () {
+                const type = paymentTypeSelect.value.toLowerCase();
+                if (type === "membership" || type === "initial") {
+                    setTimeout(() => window.location.href = "/Membership/MemberList", 400);
+                }
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            const paymentTypeSelect = $('#paymentType');
+            const membershipPeriod = $('#membershipPeriod');
+            const accessType = $('#accessType');
+            const totalCostDiv = $('#totalCostInput').closest('div');
+            const costDiv = $('#costInput').closest('div');
+            const amountPaid = $('#amountPaidInput');
+            const changeInput = $('#changeInput');
+            const memberSelect = $('#memberSelect');
+            const walkinName = $('#walkinMemberName');
+            const membershipType = $('#membershipType');
+            const dateInput = $('#dateInput');
+
+            function resetFields() {
+                // Reset dropdowns and text fields
+                membershipPeriod.val('');
+                accessType.val('');
+                memberSelect?.val('');
+                walkinName?.val('');
+                membershipType.val('');
+                $('#costInput').val('');
+                $('#totalCostInput').val('');
+                amountPaid.val('');
+                changeInput.val('');
+
+                // Re-enable all inputs
+                membershipPeriod.prop('disabled', false);
+                accessType.prop('disabled', false);
+
+                // Show both Cost and Total Cost
+                totalCostDiv.show();
+                costDiv.show();
+            }
+
+            function updateFormBehavior() {
+                const selectedType = paymentTypeSelect.val();
+
+                // Reset everything first
+                resetFields();
+
+                switch (selectedType) {
+                    case "initial":
+                        // 🧾 Initial Payment → lock period/access + hide total cost
+                        membershipPeriod.prop('disabled', true).css('background-color', '#f3f3f3');
+                        accessType.prop('disabled', true).css('background-color', '#f3f3f3');
+                        totalCostDiv.hide();
+                        costDiv.show();
+                        break;
+
+                    case "Membership":
+                        // 🔁 Membership Renewal → hide total cost
+                        totalCostDiv.hide();
+                        costDiv.show();
+                        break;
+
+                    case "walkin":
+                        // 🚶 Walk-In → hide total cost
+                        totalCostDiv.hide();
+                        costDiv.show();
+                        break;
+
+                    case "products":
+                        // 📦 Products → hide cost, show total cost
+                        costDiv.hide();
+                        totalCostDiv.show();
+                        break;
+
+                    case "":
+                    default:
+                        // 🌐 Reset all fields when no type is selected
+                        resetFields();
+                        // Restore normal background color
+                        membershipPeriod.css('background-color', '');
+                        accessType.css('background-color', '');
+                        break;
+                }
+            }
+
+            // Run once on load and whenever Payment Type changes
+            updateFormBehavior();
+            paymentTypeSelect.on('change', updateFormBehavior);
+        });
+    </script>
+}

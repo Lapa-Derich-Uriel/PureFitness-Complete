@@ -1,0 +1,35 @@
+﻿@model PureFitness.ViewModels.EquipmentScheduleViewModel
+
+<div id="generalScheduleWrap" class="mb-4">
+    <h5 class="fw-bold mb-3">
+        <i class="bi bi-tools me-2"></i>General Equipment Maintenance
+    </h5>
+
+    @if (Model.EquipmentSchedules != null && Model.EquipmentSchedules.Any())
+    {
+        @await Html.PartialAsync("_MaintenanceSchedule", Model.EquipmentSchedules)
+    }
+    else
+    {
+        <div class="alert alert-light text-center py-3 border rounded">
+            <i class="bi bi-info-circle me-2"></i>No general schedules available.
+        </div>
+    }
+</div>
+
+<div id="itemScheduleWrap" class="mt-5">
+    <h5 class="fw-bold mb-3">
+        <i class="bi bi-gear-wide-connected me-2"></i>Specific Item Maintenance
+    </h5>
+
+    @if (Model.ItemSchedules != null && Model.ItemSchedules.Any())
+    {
+        @await Html.PartialAsync("_MaintenanceSchedule", Model.ItemSchedules)
+    }
+    else
+    {
+        <div class="alert alert-light text-center py-3 border rounded">
+            <i class="bi bi-info-circle me-2"></i>No item schedules available.
+        </div>
+    }
+</div>

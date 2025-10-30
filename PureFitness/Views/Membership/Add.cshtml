@@ -1,0 +1,277 @@
+﻿@using PureFitness.ViewModels
+@model MemberViewModel
+
+@{
+    ViewData["Title"] = "Add Member";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: #F0F2F5;
+            font-family: "Segoe UI", sans-serif;
+        }
+
+        .content-container {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .form-label {
+            font-weight: 500;
+        }
+
+        .form-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+            .form-col input,
+            .form-col select {
+                width: 100%;
+            }
+
+        .btn-custom {
+            border: none;
+            font-weight: 500;
+            padding: 8px 30px;
+        }
+
+            .btn-custom:hover {
+                opacity: 0.9;
+            }
+
+        .form-footer {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        select:disabled {
+            background-color: #e9ecef;
+            color: #6c757d;
+        }
+
+        @@media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+}
+
+<div class="container-fluid">
+    <div class="content-container">
+        <h3 class="mb-4">Add Member</h3>
+
+        <!-- ✅ Info Message for Auto-generated Password -->
+        <div class="alert alert-info shadow-sm">
+            <i class="bi bi-info-circle-fill"></i>
+            The <strong>password</strong> for new members will be <strong>automatically generated</strong>.
+            You can view or change it later in the member edit page.
+        </div>
+
+        <form asp-action="AddMember" method="post" autocomplete="off">
+            @Html.AntiForgeryToken()
+
+            <!-- Row 1: First Name + Last Name -->
+            <div class="form-row">
+                <div class="form-col">
+                    <label class="form-label">First Name</label>
+                    <input type="text" name="member.Fname" class="form-control" value="@Model?.member?.Fname" required />
+                </div>
+                <div class="form-col">
+                    <label class="form-label">Last Name</label>
+                    <input type="text" name="member.Lname" class="form-control" value="@Model?.member?.Lname" required />
+                </div>
+            </div>
+
+            <!-- Row 2: Gender -->
+            <div class="form-row">
+                <div class="form-col">
+                    <label class="form-label">Gender</label>
+                    <select name="member.Gender" class="form-select">
+                        <option value="Male" selected>Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 3: Email + Username -->
+            <div class="form-row">
+                <div class="form-col">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="email" name="user.Email" class="form-control" value="@Model?.user?.Email" required />
+                </div>
+                <div class="form-col">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="username" name="user.Username" class="form-control" value="@Model?.user?.Username" readonly />
+                </div>
+            </div>
+
+            <!-- Row 4: Height + Weight -->
+            <div class="form-row">
+                <div class="form-col">
+                    <label class="form-label">Height</label>
+                    <div class="input-group">
+                        <input type="number" step="0.01" name="member.Height" class="form-control" value="@Model?.member?.Height" required />
+                        <select name="HeightUnit" class="form-select">
+                            <option value="m">m</option>
+                            <option value="cm" selected>cm</option>
+                            <option value="ft">ft</option>
+                            <option value="in">in</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-col">
+                    <label class="form-label">Weight</label>
+                    <div class="input-group">
+                        <input type="number" step="0.1" name="member.Weight" class="form-control" value="@Model?.member?.Weight" required />
+                        <select name="WeightUnit" class="form-select">
+                            <option value="kg" selected>kg</option>
+                            <option value="lbs">lbs</option>
+                            <option value="g">g</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 5: Age + Fitness Goal -->
+            <div class="form-row">
+                <div class="form-col">
+                    <label class="form-label">Age</label>
+                    <input type="number" name="member.Age" class="form-control" value="@Model?.member?.Age" required />
+                </div>
+                <div class="form-col">
+                    <label class="form-label">Fitness Goal</label>
+                    <input type="text" name="member.FitnessGoal" class="form-control" value="@Model?.member?.FitnessGoal" />
+                </div>
+            </div>
+
+            <!-- Row 6: Phone Number + Address -->
+            <div class="form-row">
+                <div class="form-col">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel"
+                           name="member.PhoneNumber"
+                           class="form-control"
+                           maxlength="11"
+                           pattern="[0-9]{11}$"
+                           value="@Model?.member?.PhoneNumber"
+                           required
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)" />
+                    <span class="text-danger">@Html.ValidationMessage("member.PhoneNumber")</span>
+                </div>
+                <div class="form-col">
+                    <label class="form-label">Address</label>
+                    <input type="text" name="member.Address" class="form-control" value="@Model?.member?.Address" placeholder="e.g. 123 Main St, City" required />
+                </div>
+            </div>
+
+            <!-- Row 7: Membership Type + Membership Period -->
+            <div class="form-row">
+                <div class="form-col">
+                    <label class="form-label">Membership Type</label>
+                    <select id="membershipType" name="member.MembershipType" class="form-select" required>
+                        <option value="">-- Select Type --</option>
+                        <option value="Regular">Regular</option>
+                        <option value="Premium">Premium</option>
+                    </select>
+                </div>
+                <div class="form-col">
+                    <label class="form-label">Membership Period</label>
+                    <select id="membershipPeriod" name="member.MembershipPeriod" class="form-select" required>
+                        <option value="">-- Select Period --</option>
+                        <option value="1 Month">1 Month</option>
+                        <option value="3 Months">3 Months</option>
+                        <option value="1 Year">1 Year</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 8: Access Type + Start Date -->
+            <div class="form-row">
+                <div class="form-col">
+                    <label class="form-label">Access Type</label>
+                    <select id="accessType" name="member.AccessType" class="form-select">
+                        <option value="Weights">Weights</option>
+                        <option value="Weights and Cardio">Weights and Cardio</option>
+                    </select>
+                </div>
+                <div class="form-col">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" name="member.DateJoined" class="form-control" value="@Model?.member?.DateJoined" required />
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="form-footer">
+                <button type="submit" class="btn btn-dark btn-custom me-3" style="color: white;" onclick="return confirm('Member Added!');">Add</button>
+                <button type="reset" class="btn btn-custom me-3" style="background: #B0C4DE">Reset</button>
+                <a asp-controller="Membership" asp-action="MemberList" class="btn btn-secondary">Back to Member List</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(function () {
+            const $type = $('#membershipType');
+            const $period = $('#membershipPeriod');
+            const $accessType = $('#accessType');
+
+            function updateOptions() {
+                const type = $type.val();
+
+                if (type === "Regular") {
+                    $period.html('<option value="1 Month">1 Month</option>');
+                } else if (type === "Premium") {
+                    $period.html('<option value="3 Months">3 Months</option><option value="1 Year">1 Year</option>');
+                } else {
+                    $period.html('<option value="">-- Select Period --</option>');
+                }
+
+                handleAccessType();
+            }
+
+            function handleAccessType() {
+                const period = $period.val();
+                if (period === "3 Months" || period === "1 Year") {
+                    $accessType.val("Weights and Cardio");
+                    $accessType.prop('disabled', true);
+                } else {
+                    $accessType.prop('disabled', false);
+                    $accessType.val("Weights");
+                }
+            }
+
+            $type.on('change', updateOptions);
+            $period.on('change', handleAccessType);
+
+            // Automatically copy email to username
+            $('#email').on('input', function () {
+                $('#username').val($(this).val());
+            });
+
+            // Initialize
+            updateOptions();
+        });
+    </script>
+}

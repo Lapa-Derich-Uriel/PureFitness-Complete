@@ -1,0 +1,90 @@
+﻿@model PureFitness.Models.Equipment
+
+@{
+    var isEdit = Model?.EquipmentId > 0;
+    var action = isEdit ? "EditEquipment" : "AddEquipment";
+}
+
+<form id="EquipmentForm" asp-action="@action" method="post">
+    @Html.AntiForgeryToken()
+
+    <!-- Modal Header -->
+    <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title mb-0">
+            <i class="bi @(isEdit ? "bi-pencil-square" : "bi-plus-circle") me-2"></i>
+            @(isEdit ? "Edit Equipment" : "Add Equipment")
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body">
+        @if (isEdit)
+        {
+            <input type="hidden" name="EquipmentId" value="@Model?.EquipmentId" />
+        }
+
+        <!-- Category -->
+        <div class="mb-3">
+            <label for="EquipmentCategory" class="form-label fw-semibold">Category</label>
+            <input id="EquipmentCategory" name="EquipmentCategory"
+                   value="@Model?.EquipmentCategory"
+                   class="form-control"
+                   placeholder="e.g., Cardio, Strength, Flexibility"
+                   required />
+        </div>
+
+        <!-- Equipment Name -->
+        <div class="mb-3">
+            <label for="EquipmentName" class="form-label fw-semibold">Equipment Name</label>
+            <input id="EquipmentName" name="EquipmentName"
+                   value="@Model?.EquipmentName"
+                   class="form-control"
+                   placeholder="e.g., Treadmill, Dumbbell"
+                   required />
+        </div>
+
+        <!-- Quantity -->
+        <div class="mb-3">
+            <label for="Quantity" class="form-label fw-semibold">Quantity</label>
+            <input id="Quantity" name="Quantity"
+                   type="number"
+                   value="@Model?.Quantity"
+                   class="form-control"
+                   min="1"
+                   required />
+        </div>
+
+        <!-- Capacity (Users at a Time) -->
+        <div class="mb-3">
+            <label for="Capacity" class="form-label fw-semibold">Capacity (Users at a Time)</label>
+            <input id="Capacity" name="Capacity"
+                   type="number"
+                   value="@Model?.Capacity"
+                   class="form-control"
+                   min="1"
+                   placeholder="e.g., 2"
+                   required />
+        </div>
+
+        <!-- Program -->
+        <div class="mb-3">
+            <label for="Program" class="form-label fw-semibold">Program</label>
+            <input id="Program" name="Program"
+                   type="text"
+                   value="@Model?.Program"
+                   class="form-control"
+                   placeholder="Enter related program (e.g., Strength Training, Cardio Boost)" />
+        </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-1"></i> Cancel
+        </button>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check2-circle me-1"></i> Save
+        </button>
+    </div>
+</form>

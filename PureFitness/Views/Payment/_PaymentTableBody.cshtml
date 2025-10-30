@@ -1,0 +1,27 @@
+﻿@model IEnumerable<PureFitness.Models.Payment>
+
+@if (Model != null && Model.Any())
+{
+    @foreach (var p in Model)
+    {
+        <tr>
+            <td>@p.ReceiptId</td>
+            <td>@($"{p.Member?.Fname} {p.Member?.Lname}")</td>
+            <td>@(p.Staff != null ? p.Staff.Name : "Admin")</td>
+            <td>@p.TransactionDate</td>
+            <td>@p.PaymentType</td>
+            <td>@p.Items</td>
+            <td>@p.Cost</td>
+            <td>@p.TotalCost</td>
+            <td>@p.Amount</td>
+            <td>@p.Change</td>
+        </tr>
+    }
+}
+else
+{
+    <tr>
+        <td colspan="10" class="text-center py-5">No Payments found.</td>
+    </tr>
+}
+

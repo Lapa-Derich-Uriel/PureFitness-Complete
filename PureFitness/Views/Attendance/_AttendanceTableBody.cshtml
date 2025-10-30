@@ -1,0 +1,76 @@
+﻿@model IEnumerable<PureFitness.Models.Attendance>
+
+@foreach (var item in Model)
+{
+    <tr>
+        <td>
+            @if (item.Member != null)
+            {
+                <span>@($"{item.Member.Fname} {item.Member.Lname}")</span>
+            }
+            else
+            {
+                <span class="text-muted fw-semibold">Walk-In:</span> @item.Receipt?.WalkInName
+            }
+        </td>
+
+        <td>
+            @{
+                var date = item.AttendanceDate?.ToDateTime(TimeOnly.MinValue);
+            }
+            @(date?.ToString("MMM dd, yyyy") ?? "-")
+        </td>
+
+        <td>@item.TimeIn?.ToString("hh:mm tt")</td>
+        <td>@item.TimeOut?.ToString("hh:mm tt")</td>
+
+        <td>
+            <span class="badge rounded-pill px-3 py-2
+                @(item.AttendanceStatus == "Present" ? "bg-success" :
+                  item.AttendanceStatus == "Absent" ? "bg-danger" : "bg-secondary")">
+                @item.AttendanceStatus
+            </span>
+        </td>
+
+        <td>
+            @if (item.TimeSpent.HasValue && item.TimeSpent.Value > 0)
+            {
+                var hours = item.TimeSpent.Value / 60;
+                var minutes = item.TimeSpent.Value % 60;
+                <span>@($"{hours}h {minutes}m")</span>
+            }
+            else
+            {
+                <span>-</span>
+            }
+        </td>
+
+        @if (ViewBag.Role == "Admin" || ViewBag.Role == "Staff")
+        {
+            <td>
+                <div class="d-flex justify-content-center gap-2">
+                    @if (item.TimeIn == null)
+                    {
+                        <form asp-action="TimeIn" asp-route-id="@item.AttendanceId" method="post">
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="bi bi-box-arrow-in-right"></i> Time-In
+                            </button>
+                        </form>
+                    }
+                    else if (item.TimeOut == null)
+                    {
+                        <form asp-action="TimeOut" asp-route-id="@item.AttendanceId" method="post">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="bi bi-box-arrow-right"></i> Time-Out
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <span class="text-muted fst-italic">Completed</span>
+                    }
+                </div>
+            </td>
+        }
+    </tr>
+}

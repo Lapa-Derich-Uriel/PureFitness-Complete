@@ -1,0 +1,45 @@
+﻿@model List<PureFitness.Models.Attendance>
+@{
+    ViewBag.Title = "Attendance Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-3">Attendance Management</h2>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4>Attendance Records</h4>
+        </div>
+        <div class="card-body">
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped align-middle">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Member / Walk-In</th>
+                                <th>Date</th>
+                                <th>Time In</th>
+                                <th>Time Out</th>
+                                <th>Status</th>
+                                <th>Time Spent</th>
+                                @if (ViewBag.Role == "Admin" || ViewBag.Role == "Staff")
+                                {
+                                    <th style="width:140px;">Action</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @await Html.PartialAsync("_AttendanceTableBody", Model)
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <p>No attendance records found.</p>
+            }
+        </div>
+    </div>
+</div>

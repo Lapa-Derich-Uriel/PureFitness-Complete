@@ -1,0 +1,78 @@
+﻿    /* ===========================
+       Print.css – Top-center receipt with roomy rows
+       =========================== */
+    @media print {
+        @page {
+            size: auto;
+            margin: 0;
+        }
+
+        html, body {
+            -webkit-print-color-adjust: exact;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+        }
+
+            /* Hide everything except the receipt */
+            body * {
+                visibility: hidden !important;
+            }
+
+        .printable-receipt,
+        .printable-receipt * {
+            visibility: visible !important;
+        }
+
+        /* Position receipt at very top center */
+        .printable-receipt {
+            position: fixed !important;
+            top: 0 !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            margin: 0 !important;
+            padding: 20px 25px !important;
+            width: auto !important;
+            background: #fff !important;
+        }
+
+            /* Remove ALL table lines/borders */
+            .printable-receipt table,
+            .printable-receipt th,
+            .printable-receipt td,
+            .printable-receipt tr {
+                border: none !important;
+                outline: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
+            /* Collapse borders but add vertical spacing between rows */
+            .printable-receipt table {
+                border-collapse: collapse !important;
+                width: 100% !important;
+            }
+
+            /* Add generous spacing for each row */
+            .printable-receipt th,
+            .printable-receipt td {
+                padding-top: 8px !important; /* vertical space ABOVE each cell */
+                padding-bottom: 8px !important; /* vertical space BELOW each cell */
+                text-align: left !important;
+                font-size: 14px !important;
+                line-height: 1.4 !important;
+            }
+
+            /* Optional header styles */
+            .printable-receipt h3 {
+                margin: 0 0 10px 0 !important;
+                font-size: 20px !important;
+                font-weight: bold;
+            }
+
+            .printable-receipt small {
+                display: block;
+                margin-bottom: 16px !important;
+                font-size: 13px !important;
+            }
+    }

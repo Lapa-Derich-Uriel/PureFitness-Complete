@@ -1,0 +1,77 @@
+--create database PureFitness
+--use PureFitness
+--create table Roles ([Role_ID] int primary key identity (1,1), [Role_name] varchar (255))
+--create table Users ([User_ID] int primary key identity (1,1), [Username] nvarchar (255), [Password] nvarchar(255), [Role_ID] int Foreign key references Roles([Role_ID]))
+--create table Staffs ([Staff_ID] int primary key identity (1,1), [Name] varchar (255) not null, [Email] nvarchar (255), [Phone_Number] nvarchar(100), 
+--[User_ID] int Foreign key references Users([User_ID]))
+--create table Members ([Member_ID] int primary key identity (1,1),[FName] varchar (255),[LName] varchar (255),[Gender] varchar (255), [Email] nvarchar (255),[Phone_Number] nvarchar(100),
+--[Address] nvarchar (255),[Membership_Type] varchar (255),[Access_Type] varchar (255),[Membership_Period] nvarchar (255), [Workout_Goal] varchar (255), [Age] int not null, 
+--[Height] decimal not null, [Weight] decimal not null, [BMI] decimal not null,[Date_Joined] datetime, [Due_Date] datetime, [NewDue_Date] Date, 
+--[User_ID] int foreign key references Users([User_ID]),[Status] varchar (30), [Paid_Status] varchar (30), [Staff_ID] int foreign key references Staffs([Staff_ID]))
+--create table Equipments ([Equipment_ID] int primary key identity(1,1), [Equipment_Name] varchar (255), [Equipment_Category] varchar (255), [Quantity] int, [Status] varchar(50))
+--create table EquipmentItem([Equipment_ItemID] int primary key identity (1,1), [Equipment_ItemName] varchar (255), [Equipment_ItemStatus] varchar (255), 
+--[Equipment_ID] int foreign key references Equipments([Equipment_ID]))
+--create table EquipmentSchedules ([ScheduleId] int primary key Identity(1,1), [Equipment_ItemID] int foreign key references EquipmentItem([Equipment_ItemID]),
+--[MaintenanceDate] date, [Staff_ID] int foreign key references Staffs([Staff_ID]), [Remarks] varchar (255))
+--create table Equipment_Logs ([Log_ID] int primary key identity (1,1), [Equipment_ItemID] int foreign key references EquipmentItem([Equipment_ItemID]),[Maintenance_Date] date, 
+--[Staff_ID] int foreign key references Staffs([Staff_ID]), [Remarks] varchar (255), [DateCreated] Date)
+--create table Payments([Receipt_ID] int primary key identity(1,1), [Staff_ID] int foreign key references Staffs([Staff_ID]), [Member_ID] int foreign key references Members([Member_ID]),[Transaction_Date] Date, [Payment_Type] varchar(255), 
+--[Items] nvarchar(255),[Cost] decimal, [Total_Cost] decimal, [Amount] decimal, [Change] decimal)
+--create table Attendances([Attendance_ID] int primary key identity (1,1),[Member_ID] int foreign key references Members([Member_ID]), 
+--[Attendance_Date] Date, [TimeIn] Time, [TimeOut] Time, [Attendance_Status] varchar(50), [Activity] varchar(255), [WalkInName] varchar (255))
+--create table Inventory([Product_ID] int primary key identity(1,1), [Product_Name]varchar (255) not null, [Product_Price] decimal not null, [Product_Description] nvarchar (255), 
+--[Product_Quantity] int, [Product_Status] varchar (255))
+--create table WorkoutPlan ([WorkoutPlan_ID] int primary key identity(1,1), [Member_ID] int foreign key references Members([Member_ID]), 
+--[Staff_ID] int foreign key references Staffs([Staff_ID]), DateCreated Datetime Default GetDate())
+--create table WorkoutPlanItem([Workout_Plan_ItemID] int primary key identity(1,1), [WorkoutPlan_ID] int foreign key references WorkoutPlan([WorkoutPlan_ID]), 
+--[Equipment_ID] int foreign key references Equipments([Equipment_ID]), [Exercise_Name] varchar(255) not null, [Sets] int not null, [Repetitions] int not null, 
+--[Notes] nvarchar(255) Null)
+--create table DietPlan([DietPlan_ID] int primary key identity(1,1), [Member_ID] int foreign key references Members([Member_ID]), [Staff_ID] int foreign key references Staffs([Staff_ID]),
+--DateCreated Datetime Default GetDate())
+--create table DietPlanItem([DietPlanItem_ID] int primary key identity(1,1), [DietPlan_ID] int foreign key references DietPlan([DietPlan_ID]), [CalorieTarget] int not null, 
+--[MealName] nvarchar(255) not null, [Notes] nvarchar(255) Null)
+--Alter table Attendances
+--alter column [Due_Date] Date
+--Drop Column [Maintenance_Date] 
+--add WalkInName varchar (255)
+--exec sp_rename 'Members.[Due_Date]', '[LastDue_Date]', 'COLUMN';
+--Drop table Members
+--Drop table Users
+--Drop table Roles
+--Drop table Staffs
+--EXEC sp_rename 'Members.[LastDue_Date]',  'LastDue_Date', 'COLUMN';
+--select * from Members
+--select * from Roles
+select * from Users
+--select * from Staffs
+--select * from Equipments
+--select * from Equipment_Logs
+--select * from EquipmentItem
+--select * from EquipmentSchedules
+--select * from Payments
+--select * from Inventory
+--select * from WorkoutPlan
+--select * from Attendances
+--select * from WorkoutPlanItem
+--select * from DietPlan
+--select * from DietPlanItem
+--Delete from Members
+--Delete from Users 
+--Delete from Attendances
+--Delete from Roles
+--Delete from Equipments
+--Delete from Equipment_Logs
+--Delete from EquipmentSchedules
+--Delete from Payments
+--Delete from Users where Role_ID = 1
+--INSERT INTO Roles ([Role_name]) VALUES ('Admin')
+--INSERT INTO Users 
+--VALUES ('Admin', 'Admin', 3) -- Assuming RoleId = 1 is Admin
+--delete from Users where [User_ID] = 8
+--Drop database PureFitness
+--Update Members
+--set Due_Date ='2025-9-28'
+--where Member_ID = 8
+--Update Users
+--Set Password = 'AQAAAAEAACcQAAAAEJCgfLZXam3fnNp2m90iei6KSHVUvB8tdY7K80pzKhL41UxC+4/rsMmIrQpKi/E6uQ=='
+--Where Username = 'Admin';

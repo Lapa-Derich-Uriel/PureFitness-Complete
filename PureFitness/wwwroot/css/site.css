@@ -1,0 +1,110 @@
+html {
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    margin-bottom: 60px;
+}
+
+/*
+  Styles for the custom image icons in the dashboard menu.
+  This replaces the old rule for '.dashboard-button i'
+*/
+.dashboard-icon {
+    height: 40px; /* Controls the icon height */
+    width: auto; /* Maintains aspect ratio */
+    margin-right: 1.5rem; /* Space between icon and text */
+}
+
+
+/* 
+  Style for the custom logout icon in the top navbar.
+*/
+.logout-icon {
+    height: 24px; /* A smaller height suitable for the navbar */
+    width: auto;
+    margin-right: 8px; /* Space between icon and "Logout" text */
+}
+
+/* Landing Page */
+.landing-page {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background: url('/images/background1.png') no-repeat center center fixed;
+    background-size: cover;
+    filter: blur(0px);
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+    .landing-page .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 1;
+    }
+
+    .landing-page .center-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        color: #fff;
+        z-index: 2;
+    }
+
+    .landing-page .title {
+        font-size: 4rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .landing-page .subtitle {
+        font-size: 1.5rem;
+        font-weight: 500;
+        margin-bottom: 2rem;
+    }
+
+    .landing-page .login-btn {
+        font-size: 1.2rem;
+        padding: 0.5rem 1.5rem;
+        border: none;
+        border-radius: 5px;
+        background: #e0e0e0;
+        color: #222;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+        .landing-page .login-btn:hover {
+            background: #bdbdbd;
+        }
+
+/* ... truncated for brevity ... */
+.dashboard-page .footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    white-space: nowrap;
+    line-height: 60px;
+}

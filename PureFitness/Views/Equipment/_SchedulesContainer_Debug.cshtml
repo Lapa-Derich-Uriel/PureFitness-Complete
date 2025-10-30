@@ -1,0 +1,65 @@
+﻿@model PureFitness.ViewModels.EquipmentScheduleViewModel
+
+<div class="border rounded p-3 mb-4 bg-light">
+    <h5 class="fw-bold">🔍 DEBUG INFO</h5>
+    <p>
+        General Equipment Schedules: <strong>@Model.EquipmentSchedules?.Count()</strong><br />
+        Specific Item Schedules: <strong>@Model.ItemSchedules?.Count()</strong>
+    </p>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h6 class="fw-semibold">General Equipment (First 3)</h6>
+            <ul>
+                @foreach (var eq in Model.EquipmentSchedules!.Take(3))
+                {
+                    <li>ID: @eq.ScheduleId, EquipmentId: @eq.EquipmentId, ItemId: @eq.EquipmentItemId, Remarks: @eq.Remarks</li>
+                }
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h6 class="fw-semibold">Specific Items (First 3)</h6>
+            <ul>
+                @foreach (var it in Model.ItemSchedules!.Take(3))
+                {
+                    <li>ID: @it.ScheduleId, EquipmentId: @it.EquipmentId, ItemId: @it.EquipmentItemId, Remarks: @it.Remarks</li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Then still render the actual tables -->
+<div id="generalScheduleWrap" class="mb-4">
+    <h5 class="fw-bold mb-3">
+        <i class="bi bi-tools me-2"></i>General Equipment Maintenance
+    </h5>
+
+    @if (Model.EquipmentSchedules != null && Model.EquipmentSchedules.Any())
+    {
+        @await Html.PartialAsync("_MaintenanceSchedule", Model.EquipmentSchedules)
+    }
+    else
+    {
+        <div class="alert alert-light text-center py-3 border rounded">
+            <i class="bi bi-info-circle me-2"></i>No general maintenance schedules available.
+        </div>
+    }
+</div>
+
+<div id="itemScheduleWrap" class="mt-5">
+    <h5 class="fw-bold mb-3">
+        <i class="bi bi-gear-wide-connected me-2"></i>Specific Equipment Item Maintenance
+    </h5>
+
+    @if (Model.ItemSchedules != null && Model.ItemSchedules.Any())
+    {
+        @await Html.PartialAsync("_MaintenanceSchedule", Model.ItemSchedules)
+    }
+    else
+    {
+        <div class="alert alert-light text-center py-3 border rounded">
+            <i class="bi bi-info-circle me-2"></i>No specific item maintenance schedules available.
+        </div>
+    }
+</div>

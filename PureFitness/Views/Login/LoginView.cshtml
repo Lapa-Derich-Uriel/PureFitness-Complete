@@ -1,0 +1,244 @@
+﻿@using PureFitness.ViewModels
+@model LoginViewModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <style>
+        /* ✅ keep your existing styles unchanged */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            color: black;
+        }
+
+            body::before {
+                content: "";
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: url('/images/background2.png') center no-repeat;
+                background-size: cover;
+                filter: blur(8px);
+                z-index: -2;
+            }
+
+            body::after {
+                content: "";
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: -1;
+            }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: rgba(217, 217, 217, 0.5);
+            color: #000;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+            .header-left img {
+                width: 50px;
+                height: 50px;
+                object-fit: cover;
+                border-radius: 50%;
+                margin-right: 10px;
+                border: 2px solid #000;
+                background-color: #fff;
+            }
+
+            .header-left h2 {
+                margin: 0;
+                font-weight: bold;
+            }
+
+        .header-right h4 {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        main {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100vh - 60px);
+            padding: 0 50px;
+        }
+
+        .content-wrapper {
+            display: flex;
+            gap: 60px;
+            align-items: center;
+            justify-content: center;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .tagline-section {
+            color: #fff;
+            max-width: 450px;
+        }
+
+            .tagline-section h3 {
+                font-size: 1.8rem;
+                font-weight: bold;
+                margin-bottom: 1rem;
+                color: white;
+            }
+
+            .tagline-section p {
+                font-size: 1rem;
+                line-height: 1.5;
+            }
+
+        .login-container {
+            max-width: 400px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+            .login-container h3 {
+                font-size: 1.5rem;
+                font-weight: bold;
+                margin-bottom: 1.5rem;
+                color: white;
+            }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+            text-align: left;
+            padding: 0;
+        }
+
+        .login-container input[type="text"],
+        .login-container input[type="password"] {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.7);
+            border: none;
+            border-radius: 5px;
+            color: #333;
+            font-size: 1rem;
+            box-sizing: border-box;
+            margin: 0;
+        }
+
+        .password-wrapper {
+            position: relative;
+            margin-bottom: 1.2rem;
+            padding: 0;
+        }
+
+            .password-wrapper input {
+                padding-right: 2.5rem;
+            }
+
+        .toggle-password {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .forgot {
+            text-align: right;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+            .forgot a {
+                color: #fff;
+                text-decoration: underline;
+            }
+
+        .btn {
+            margin-top: 10px;
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 5px;
+            background: #fff;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <img src="/images/logo.png" alt="PureFit Logo" />
+            <h2>PureFitness</h2>
+        </div>
+        <div class="header-right">
+            <h4>Your fitness, our focus.</h4>
+        </div>
+    </header>
+
+    <main>
+        <div class="content-wrapper">
+            <div class="tagline-section">
+                <h3>Purefit Gym: Your Blueprint for a Healthier Life.</h3>
+                <p>Purefit Gym is your complete fitness solution, providing diverse workouts, expert training, and personalized programs for your entire health journey.</p>
+            </div>
+
+            <div class="login-container">
+                <h3>Welcome</h3>
+                <form asp-action="SignIn" method="post">
+                    <div class="form-group">
+                        <input type="text" name="Username" placeholder="Username" />
+                    </div>
+                    <div class="form-group password-wrapper">
+                        <input type="password" id="passwordInput" name="Password" placeholder="Password" />
+                        <button type="button" id="togglePassword" class="toggle-password">&#128065;</button>
+                    </div>
+
+                    <div class="forgot">
+                        <a asp-action="ForgotPassword" asp-controller="Login">Forgot Password?</a>
+                    </div>
+
+                    <button type="submit" class="btn">Log in</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const togglePassword = document.getElementById('togglePassword');
+        togglePassword.addEventListener('click', function () {
+            const passwordField = document.getElementById('passwordInput');
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+        });
+    </script>
+</body>
+</html>

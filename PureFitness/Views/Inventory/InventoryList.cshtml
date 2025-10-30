@@ -1,0 +1,415 @@
+﻿@model PureFitness.ViewModels.InventoryViewModel
+
+@{
+    ViewBag.Title = "Inventory Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <style>
+        .nav-tabs .nav-link.active {
+            font-weight: 600;
+            border-bottom: 3px solid #1E90FF;
+        }
+
+        .tab-content {
+            margin-top: 20px;
+        }
+
+        table th {
+            background: #f8f9fa;
+        }
+    </style>
+}
+
+<div class="container-fluid px-4">
+    @Html.AntiForgeryToken()
+
+    <!-- 🧭 Tabs -->
+    <ul class="nav nav-tabs mt-4" id="inventoryTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="products-tab" data-bs-toggle="tab" data-bs-target="#products" type="button">
+                Products
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="suppliers-tab" data-bs-toggle="tab" data-bs-target="#suppliers" type="button">
+                Suppliers
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- 📦 PRODUCTS TAB -->
+        <div class="tab-pane fade show active" id="products" role="tabpanel">
+            <div class="d-flex flex-wrap justify-content-between align-items-end mt-3 mb-3">
+                <div class="d-flex align-items-end gap-3">
+                    <input type="text" class="form-control" id="searchBox"
+                           placeholder="🔍 Search product" style="min-width:250px;" />
+                    <div>
+                        <label for="statusFilter" class="form-label fw-semibold mb-1">Status</label>
+                        <select class="form-select" id="statusFilter" style="min-width:140px;">
+                            <option value="all">All</option>
+                            <option value="available">Available</option>
+                            <option value="low">Low Stock</option>
+                            <option value="out">Out of Stock</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                    <i class="bi bi-plus-circle"></i> Add New Product
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                            <th class ="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody">
+                        @if (Model?.Inventories != null && Model.Inventories.Any())
+                        {
+                            foreach (var product in Model.Inventories)
+                            {
+                                <tr data-bs-name="@product.Product?.ProductName"
+                                    data-bs-price="@product.Product?.ProductPrice"
+                                    data-bs-id="@product.InventoryId">
+                                    <td class="fw-semibold">@product.Product?.ProductName</td>
+                                    <td>₱@(product.Product?.ProductPrice?.ToString("N2") ?? "0.00")</td>
+                                    <td>@product.ProductQuantity</td>
+                                    <td>
+                                        @if (product.ProductStatus == "Available")
+                                        {
+                                            <span class="badge bg-success">Available</span>
+                                        }
+                                        else if (product.ProductStatus == "Low Stock")
+                                        {
+                                            <span class="badge bg-warning text-dark">Low Stock</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Out of Stock</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-light"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editProductModal"
+                                                data-productid="@product.InventoryId"
+                                                data-productname="@product.Product?.ProductName"
+                                                data-productprice="@product.Product?.ProductPrice">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+
+                                        <form asp-action="Delete" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@product.InventoryId" />
+                                            <button type="submit" class="btn btn-sm btn-light"
+                                                    onclick="return confirm('Delete this product?');">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+
+                                        <button type="button" class="btn btn-sm btn-light"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#addQuantityModal"
+                                                data-productid="@product.InventoryId"
+                                                data-productname="@product.Product?.ProductName">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="6" class="text-center py-4">No products found.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 🏭 SUPPLIERS TAB -->
+        <div class="tab-pane fade" id="suppliers" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+                <h4 class="fw-bold">Supplier List</h4>
+                <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
+                    <i class="bi bi-plus-circle"></i> Add Supplier
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Contact Number</th>
+                            <th>Email</th>
+                            <th>Address</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model?.supplier != null && Model.Suppliers!.Any())
+                        {
+                            foreach (var s in Model.Suppliers!)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@s.SupplierName</td>
+                                    <td>@s.PhoneNumber</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-light edit-supplier" data-id="@s.SupplierId">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <form asp-action="DeleteSupplier" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@s.SupplierId" />
+                                            <button type="submit" class="btn btn-sm btn-light"
+                                                    onclick="return confirm('Delete this supplier?');">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="5" class="text-center py-4">No suppliers available.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🔹 Modals: Add Product, Edit Product, Add Quantity, Add Supplier -->
+@* (Use the same modals you already have, just append your Add Supplier modal below) *@
+
+<div class="modal fade" id="addSupplierModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-controller="Inventory" asp-action="AddSupplier" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold">Add New Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Supplier Name</label>
+                        <input type="text" name="SupplierName" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Phone Number</label>
+                        <input type="text" name="PhoneNumber" class="form-control"
+                               maxlength="11" minlength="11" pattern="[0-9]{11}"
+                               inputmode="numeric" placeholder="Enter 11-digit number" required
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)" />
+                        <small class="text-muted">Must be 11 digits (numbers only)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email</label>
+                        <input type="email" name="Email" class="form-control" placeholder="example@gmail.com"
+                               pattern="^[a-zA-Z0-9._%+-]+@@(gmail\.com|yahoo\.com|outlook\.com|hotmail\.com)$"
+                               title="Only Gmail, Yahoo, Outlook, or Hotmail addresses are allowed."
+                               required />
+                        <small class="text-muted">Must be a valid email (e.g. user@gmail.com, user@yahoo.com)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Address</label>
+                        <textarea name="Address" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark">Save Supplier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 🆕 Add Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-controller="Inventory" asp-action="AddProduct" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold">Add New Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Product Name</label>
+                        <input type="text" name="ProductName" class="form-control" placeholder="Enter product name" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Price (₱)</label>
+                        <input type="number" name="ProductPrice" class="form-control" min="0" step="0.01" placeholder="Enter price" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Initial Quantity</label>
+                        <input type="number" name="ProductQuantity" class="form-control" min="0" step="1" placeholder="Enter quantity" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Supplier</label>
+                        <select name="SupplierId" class="form-select">
+                            <option value="">-- Select Supplier --</option>
+                            @if (ViewBag.Suppliers != null)
+                            {
+                                foreach (var s in ViewBag.Suppliers)
+                                {
+                                    <option value="@s.SupplierId">@s.SupplierName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ✏️ Edit Product Modal -->
+<div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-controller="Inventory" asp-action="EditProduct" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="editProductId" name="ProductId" />
+
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold">Edit Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Product Name</label>
+                        <input type="text" id="editProductName" name="ProductName" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Price (₱)</label>
+                        <input type="number" id="editProductPrice" name="ProductPrice" class="form-control" min="0" step="0.01" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Supplier</label>
+                        <select id="editSupplierId" name="SupplierId" class="form-select">
+                            <option value="">-- Select Supplier --</option>
+                            @if (ViewBag.Suppliers != null)
+                            {
+                                foreach (var s in ViewBag.Suppliers)
+                                {
+                                    <option value="@s.SupplierId">@s.SupplierName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark">Update Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ➕ Add Quantity Modal -->
+<div class="modal fade" id="addQuantityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-controller="Inventory" asp-action="AddQuantity" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="addQuantityInventoryId" name="inventoryId" />
+
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold">Add Quantity</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Product Name</label>
+                        <input type="text" id="addQuantityProductName" class="form-control" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Add Quantity</label>
+                        <input type="number" name="quantity" class="form-control" min="1" step="1"
+                               placeholder="Enter quantity to add" required />
+                        <small class="text-muted">Quantity must be greater than 0.</small>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark">Update Quantity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Filter products dynamically
+        function filterInventory() {
+            $.post('@Url.Action("Search", "Inventory")',
+                { search: $('#searchBox').val(), statusFilter: $('#statusFilter').val() })
+                .done(result => $('#inventoryTableBody').html(result))
+                .fail(() => console.error("Error filtering inventory."));
+        }
+
+        $(function () {
+            $('#searchBox').on('input', filterInventory);
+            $('#statusFilter').on('change', filterInventory);
+        });
+    </script>
+    <script>
+        // Populate Edit Product Modal with data
+        $('#editProductModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            $('#editProductId').val(button.data('productid'));
+            $('#editProductName').val(button.data('productname'));
+            $('#editProductDescription').val(button.data('productdescription'));
+            $('#editProductPrice').val(button.data('productprice'));
+        });
+    </script>
+    <script>
+        // Populate Add Quantity Modal with the selected product data
+        $('#addQuantityModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var productId = button.data('productid');
+            var productName = button.data('productname');
+
+            $('#addQuantityInventoryId').val(productId);
+            $('#addQuantityProductName').val(productName);
+        });
+    </script>
+}

@@ -1,0 +1,551 @@
+﻿@model IEnumerable<PureFitness.ViewModels.WorkoutAndDietPlanViewModel>
+
+@{
+    ViewBag.Title = "Exercise & Diet Plan List";
+    Layout = "_Layout";
+
+    var staffList = ViewBag.StaffList as List<PureFitness.Models.Staff> ?? new();
+    var equipmentList = ViewBag.EquipmentList as List<PureFitness.Models.Equipment> ?? new();
+    // HTML snippets for options — include data-category so JS can detect "endurance"/"cardio"
+    var equipmentOptionsHtml = string.Join("", equipmentList.Select(eq =>
+        $"<option value=\"{eq.EquipmentId}\" data-category=\"{eq.EquipmentCategory}\">{eq.EquipmentName} ({eq.EquipmentCategory})</option>"
+    ));
+
+    var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Member";
+}
+
+<div class="page-content">
+    <div class="container-fluid">
+
+        @if (role != "Member")
+        {
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Exercise & Diet Plan List</h4>
+                </div>
+
+                <div class="card-body table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Member Name</th>
+                                <th>Assigned Trainer</th>
+                                <th>BMI</th>
+                                <th>Fitness Goal</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var vm in Model)
+                            {
+                                <tr>
+                                    <td>@($"{vm.Member?.Fname} {vm.Member?.Lname}")</td>
+                                    <td>@(vm.Staff?.Name ?? "Unassigned")</td>
+                                    <td>@(vm.Member?.Bmi)</td>
+                                    <td>@(vm.Member?.FitnessGoal ?? "None")</td>
+                                    <td>
+                                        <button class="btn btn-primary btn-sm"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#planModal"
+                                                data-member-id="@vm.MemberId"
+                                                data-staff-id="@vm.StaffId"
+                                                data-member-name="@($"{vm.Member?.Fname} {vm.Member?.Lname}")">
+                                            Manage Plans
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================== MODAL ================== -->
+            <div class="modal fade" id="planModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <form id="planForm" method="post" asp-action="CreateWorkoutAndDietPlan">
+                            @Html.AntiForgeryToken()
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">Manage Plans for <span id="memberName"></span></h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+
+                            <div class="modal-body">
+                                <input type="hidden" id="MemberId" name="MemberId" />
+                                <div id="trainerContainer" class="mb-3">
+                                    @if (role == "Admin")
+                                    {
+                                        <label class="form-label">Assign Trainer</label>
+                                        <select name="StaffId" id="trainerSelect" class="form-select">
+                                            <option value="">-- Select Trainer --</option>
+                                            @foreach (var trainer in staffList)
+                                            {
+                                                <option value="@trainer.StaffId">@trainer.Name</option>
+                                            }
+                                        </select>
+                                    }
+                                    else
+                                    {
+                                        <label class="form-label">Assigned Trainer</label>
+                                        <input type="text" class="form-control" id="trainerReadOnly" readonly />
+                                        <input type="hidden" id="StaffId" name="StaffId" />
+                                    }
+                                </div>
+
+                                <h5 class="text-primary">Workout Plan</h5>
+                                <table class="table table-bordered align-middle" id="workoutTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Exercise</th>
+                                            <th>Equipment</th>
+                                            <th>Sets/Minutes</th>
+                                            <th>Repetitions</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="workoutBody">
+                                        <tr><td colspan="6" class="text-center text-muted">No items found</td></tr>
+                                    </tbody>
+                                </table>
+                                <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="addWorkoutRow">+ Add Workout Plan Item</button>
+
+                                <h5 class="text-success mt-4">Diet Plan</h5>
+                                <table class="table table-bordered align-middle" id="dietTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Meal</th>
+                                            <th>Calorie Target</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dietBody">
+                                        <tr><td colspan="4" class="text-center text-muted">No items found</td></tr>
+                                    </tbody>
+                                </table>
+                                <button type="button" class="btn btn-outline-success btn-sm mb-3" id="addDietRow">+ Add Diet Plan Item</button>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-success" id="savePlansBtn">Save</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">My Workout & Diet Plan</h4>
+                </div>
+
+                <div class="card-body">
+                    @if (Model != null && Model.Any())
+                    {
+                        var vm = Model.First();
+
+                        <h5 class="text-primary mb-3">Workout Plan</h5>
+                        @if (vm.WorkoutPlanItems != null && vm.WorkoutPlanItems.Any())
+                        {
+                            <table class="table table-bordered align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Exercise</th>
+                                        <th>Equipment</th>
+                                        <th>Sets/Minutes</th>
+                                        <th>Repetitions</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in vm.WorkoutPlanItems)
+                                    {
+                                        <tr>
+                                            <td>@item.ExerciseName</td>
+                                            <td>@(item.Equipment?.EquipmentName ?? "N/A")</td>
+                                            <td>@item.Sets</td>
+                                            <td>@item.Repetitions</td>
+                                            <td>@item.Notes</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No workout plan available.</p>
+                        }
+
+                        <h5 class="text-success mt-4 mb-3">Diet Plan</h5>
+                        @if (vm.DietPlanItems != null && vm.DietPlanItems.Any())
+                        {
+                            <table class="table table-bordered align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Meal</th>
+                                        <th>Calorie Target</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in vm.DietPlanItems)
+                                    {
+                                        <tr>
+                                            <td>@item.MealName</td>
+                                            <td>@item.CalorieTarget</td>
+                                            <td>@item.Notes</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No diet plan available.</p>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">You don’t have a workout or diet plan yet.</p>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    @if (role != "Member")
+    {
+        <script>
+            (function () {
+                window.PlanEditor = window.PlanEditor || {};
+                const PE = window.PlanEditor;
+
+                PE.equipmentOptions = `<option value="">Select Equipment</option>` + `@Html.Raw(equipmentOptionsHtml.Replace("`", "&#96;"))`;
+
+                PE.dom = {
+                    planModal: null,
+                    planForm: null,
+                    workoutBody: null,
+                    dietBody: null,
+                    addWorkoutBtn: null,
+                    addDietBtn: null,
+                    trainerSelect: null,
+                    trainerReadOnly: null,
+                    hiddenStaffInput: null,
+                    saveBtn: null
+                };
+
+                PE.wIndex = 0;
+                PE.dIndex = 0;
+                PE.currentMemberId = null;
+                PE.currentStaffId = null;
+
+                PE.escape = function (s) {
+                    return String(s ?? "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#39;");
+                };
+
+                PE.val = function (obj, propPascal) {
+                    if (!obj) return undefined;
+                    const camel = propPascal.charAt(0).toLowerCase() + propPascal.slice(1);
+                    if (obj[propPascal] !== undefined) return obj[propPascal];
+                    if (obj[camel] !== undefined) return obj[camel];
+                    return undefined;
+                };
+
+                PE.wireUpEquipmentSelect = function (selectElem, repsInput) {
+                    if (!selectElem || !repsInput) return;
+                    function adjust() {
+                        const cat = (selectElem.options[selectElem.selectedIndex]?.dataset.category || "").toLowerCase();
+                        if (cat.includes("endurance") || cat.includes("cardio")) {
+                            repsInput.value = 0;
+                            repsInput.readOnly = true;
+                        } else {
+                            repsInput.readOnly = false;
+                        }
+                    }
+                    selectElem.addEventListener("change", adjust);
+                    adjust();
+                };
+
+                PE.createWorkoutRow = function (data) {
+                    data = data || {};
+                    const index = PE.wIndex++;
+                    const tr = document.createElement("tr");
+
+                    const exerciseVal = PE.escape(PE.val(data, "ExerciseName") ?? "");
+                    const setsVal = PE.escape(PE.val(data, "Sets") ?? "");
+                    const repsVal = PE.escape(PE.val(data, "Repetitions") ?? "");
+                    const notesVal = PE.escape(PE.val(data, "Notes") ?? "");
+                    const equipmentIdVal = PE.val(data, "EquipmentId") ?? "";
+
+                    tr.innerHTML = `
+                        <td><input class="form-control" name="WorkoutPlanItems[${index}].ExerciseName" value="${exerciseVal}" required /></td>
+                        <td>
+                            <select class="form-select equipment-select" name="WorkoutPlanItems[${index}].EquipmentId" required>
+                                ${PE.equipmentOptions}
+                            </select>
+                        </td>
+                        <td><input type="number" class="form-control" name="WorkoutPlanItems[${index}].Sets" value="${setsVal}" min="1" required /></td>
+                        <td><input type="number" class="form-control reps-input" name="WorkoutPlanItems[${index}].Repetitions" value="${repsVal}" min="0" required /></td>
+                        <td><input class="form-control" name="WorkoutPlanItems[${index}].Notes" value="${notesVal}" /></td>
+                    `;
+
+                    PE.dom.workoutBody.appendChild(tr);
+
+                    const select = tr.querySelector("select.equipment-select");
+                    const repsInput = tr.querySelector(".reps-input");
+                    if (equipmentIdVal !== "" && equipmentIdVal !== null && equipmentIdVal !== undefined) {
+                        try { select.value = String(equipmentIdVal); } catch (e) { /* ignore */ }
+                    }
+                    PE.wireUpEquipmentSelect(select, repsInput);
+
+                    return tr;
+                };
+
+                PE.createDietRow = function (data) {
+                    data = data || {};
+                    const index = PE.dIndex++;
+                    const tr = document.createElement("tr");
+
+                    const mealVal = PE.escape(PE.val(data, "MealName") ?? "");
+                    const calVal = PE.escape(PE.val(data, "CalorieTarget") ?? "");
+                    const notesVal = PE.escape(PE.val(data, "Notes") ?? "");
+
+                    tr.innerHTML = `
+                        <td><input class="form-control" name="DietPlanItems[${index}].MealName" value="${mealVal}" required /></td>
+                        <td><input type="number" class="form-control" name="DietPlanItems[${index}].CalorieTarget" value="${calVal}" min="0" required /></td>
+                        <td><input class="form-control" name="DietPlanItems[${index}].Notes" value="${notesVal}" /></td>
+                    `;
+
+                    PE.dom.dietBody.appendChild(tr);
+                    return tr;
+                };
+
+                PE.clearWorkout = function () { PE.dom.workoutBody.innerHTML = ""; PE.wIndex = 0; };
+                PE.clearDiet = function () { PE.dom.dietBody.innerHTML = ""; PE.dIndex = 0; };
+
+                PE.renderWorkoutTable = function (items) {
+                    PE.clearWorkout();
+                    if (!items || items.length === 0) {
+                        PE.dom.workoutBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No items found</td></tr>`;
+                        return;
+                    }
+                    items.forEach(i => PE.createWorkoutRow(i));
+                };
+
+                PE.renderDietTable = function (items) {
+                    PE.clearDiet();
+                    if (!items || items.length === 0) {
+                        PE.dom.dietBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No items found</td></tr>`;
+                        return;
+                    }
+                    items.forEach(i => PE.createDietRow(i));
+                };
+
+                document.addEventListener("DOMContentLoaded", function () {
+                    try {
+                        PE.dom.planModal = document.getElementById("planModal");
+                        PE.dom.planForm = document.getElementById("planForm");
+                        PE.dom.workoutBody = document.getElementById("workoutBody");
+                        PE.dom.dietBody = document.getElementById("dietBody");
+                        PE.dom.addWorkoutBtn = document.getElementById("addWorkoutRow");
+                        PE.dom.addDietBtn = document.getElementById("addDietRow");
+                        PE.dom.saveBtn = document.getElementById("savePlansBtn");
+                        PE.dom.trainerSelect = document.getElementById("trainerSelect");
+                        PE.dom.trainerReadOnly = document.getElementById("trainerReadOnly");
+                        PE.dom.hiddenStaffInput = document.getElementById("StaffId");
+
+                        PE.dom.addWorkoutBtn?.addEventListener("click", function () {
+                            if (PE.dom.workoutBody.querySelector(".text-muted")) PE.clearWorkout();
+                            PE.createWorkoutRow({});
+                        });
+                        PE.dom.addDietBtn?.addEventListener("click", function () {
+                            if (PE.dom.dietBody.querySelector(".text-muted")) PE.clearDiet();
+                            PE.createDietRow({});
+                        });
+
+                        PE.dom.planModal?.addEventListener("show.bs.modal", function (e) {
+                            const btn = e.relatedTarget;
+                            PE.currentMemberId = btn.getAttribute("data-member-id");
+                            PE.currentStaffId = btn.getAttribute("data-staff-id") || "";
+                            const memberName = btn.getAttribute("data-member-name") || "";
+
+                            document.getElementById("memberName").textContent = memberName;
+                            const hiddenMember = document.getElementById("MemberId");
+                            if (hiddenMember) hiddenMember.value = PE.currentMemberId;
+
+                            if (PE.dom.trainerSelect) PE.dom.trainerSelect.value = PE.currentStaffId;
+                            if (PE.dom.hiddenStaffInput) PE.dom.hiddenStaffInput.value = PE.currentStaffId;
+                            if (PE.dom.trainerReadOnly) PE.dom.trainerReadOnly.value = btn.getAttribute("data-staff-name") || "";
+
+                            fetch(`/WorkoutAndDietPlan/GetPlans?memberId=${encodeURIComponent(PE.currentMemberId)}`)
+                                .then(r => r.ok ? r.json() : Promise.reject(r))
+                                .then(data => {
+                                    const workouts = data.workouts || data.workoutItems || data.workout || [];
+                                    const diets = data.diets || data.dietItems || data.diet || [];
+
+                                    if (data.staffId) {
+                                        if (PE.dom.trainerSelect) PE.dom.trainerSelect.value = data.staffId;
+                                        if (PE.dom.hiddenStaffInput) PE.dom.hiddenStaffInput.value = data.staffId;
+                                        if (PE.dom.trainerReadOnly) PE.dom.trainerReadOnly.value = data.staffName || ("ID: " + data.staffId);
+                                    }
+
+                                    // RENDER: clears before adding — prevents client-side duplicates
+                                    PE.renderWorkoutTable(workouts);
+                                    PE.renderDietTable(diets);
+                                })
+                                .catch(err => {
+                                    console.error("GetPlans error:", err);
+                                    PE.clearWorkout(); PE.clearDiet();
+                                    if (PE.dom.workoutBody) PE.dom.workoutBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Error loading items</td></tr>`;
+                                    if (PE.dom.dietBody) PE.dom.dietBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">Error loading items</td></tr>`;
+                                });
+                        });
+                    } catch (err) {
+                        console.error("PlanEditor init error:", err);
+                    }
+                });
+
+                window.PlanEditor = PE;
+            })();
+        </script>
+
+        <script>
+            (function () {
+                const PE = window.PlanEditor;
+                if (!PE) {
+                    console.error("PlanEditor not loaded. Ensure Script A is present.");
+                    return;
+                }
+
+                function collectWorkouts() {
+                    if (!PE.dom.workoutBody) return [];
+                    const rows = [...PE.dom.workoutBody.querySelectorAll("tr")];
+                    return rows.map(tr => {
+                        const exInput = tr.querySelector('[name$=".ExerciseName"]');
+                        if (!exInput) return null;
+                        const exercise = (exInput.value || "").trim();
+                        if (!exercise) return null;
+                        const equipmentVal = tr.querySelector('[name$=".EquipmentId"]')?.value;
+                        const equipmentId = equipmentVal ? parseInt(equipmentVal) : 0;
+                        const sets = parseInt(tr.querySelector('[name$=".Sets"]')?.value || 0);
+                        const reps = parseInt(tr.querySelector('[name$=".Repetitions"]')?.value || 0);
+                        const notes = tr.querySelector('[name$=".Notes"]')?.value || "";
+                        return {
+                            ExerciseName: exercise,
+                            EquipmentId: equipmentId,
+                            Sets: sets,
+                            Repetitions: reps,
+                            Notes: notes
+                        };
+                    }).filter(Boolean);
+                }
+
+                function collectDiets() {
+                    if (!PE.dom.dietBody) return [];
+                    const rows = [...PE.dom.dietBody.querySelectorAll("tr")];
+                    return rows.map(tr => {
+                        const mealInput = tr.querySelector('[name$=".MealName"]');
+                        if (!mealInput) return null;
+                        const meal = (mealInput.value || "").trim();
+                        if (!meal) return null;
+                        const cal = parseInt(tr.querySelector('[name$=".CalorieTarget"]')?.value || 0);
+                        const notes = tr.querySelector('[name$=".Notes"]')?.value || "";
+                        return {
+                            MealName: meal,
+                            CalorieTarget: cal,
+                            Notes: notes
+                        };
+                    }).filter(Boolean);
+                }
+
+                async function refreshPlansFromServer() {
+                    try {
+                        if (!PE.currentMemberId) return;
+                        const res = await fetch(`/WorkoutAndDietPlan/GetPlans?memberId=${encodeURIComponent(PE.currentMemberId)}`);
+                        if (!res.ok) throw res;
+                        const data = await res.json();
+                        const workouts = data.workouts || data.workoutItems || data.workout || [];
+                        const diets = data.diets || data.dietItems || data.diet || [];
+
+                        // RENDER clears before append — ensures no duplicates client-side
+                        PE.renderWorkoutTable(workouts);
+                        PE.renderDietTable(diets);
+
+                        if (data.staffId) {
+                            if (PE.dom.trainerSelect) PE.dom.trainerSelect.value = data.staffId;
+                            if (PE.dom.hiddenStaffInput) PE.dom.hiddenStaffInput.value = data.staffId;
+                            if (PE.dom.trainerReadOnly) PE.dom.trainerReadOnly.value = data.staffName || ("ID: " + data.staffId);
+                        }
+                    } catch (err) {
+                        console.error("refreshPlansFromServer error:", err);
+                    }
+                }
+
+                document.addEventListener("DOMContentLoaded", function () {
+                    if (!PE.dom.saveBtn) {
+                        return;
+                    }
+
+                    PE.dom.saveBtn.addEventListener("click", async function () {
+                        if (!PE.currentMemberId) {
+                            alert("No member selected.");
+                            return;
+                        }
+
+                        const payload = {
+                            MemberId: parseInt(PE.currentMemberId),
+                            Workouts: collectWorkouts(),
+                            Diets: collectDiets()
+                        };
+
+                        if ((!payload.Workouts || payload.Workouts.length === 0) && (!payload.Diets || payload.Diets.length === 0)) {
+                            alert("No workout or diet items to save.");
+                            return;
+                        }
+
+                        const btn = PE.dom.saveBtn;
+                        const originalText = btn.textContent;
+                        btn.disabled = true;
+                        btn.textContent = "Saving...";
+
+                        try {
+                            const res = await fetch('/WorkoutAndDietPlan/SaveWorkoutAndDietPlan', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+
+                            if (!res.ok) {
+                                const txt = await res.text();
+                                console.error("SaveWorkoutAndDietPlan failed:", res.status, txt);
+                                alert("Failed to save plans. Check console for details.");
+                                return;
+                            }
+
+                            // refresh UI from DB truth (prevents duplicates)
+                            await refreshPlansFromServer();
+                            alert("Plans saved successfully.");
+                        } catch (err) {
+                            console.error("Save error:", err);
+                            alert("Unexpected error while saving. See console.");
+                        } finally {
+                            btn.disabled = false;
+                            btn.textContent = originalText;
+                        }
+                    });
+                });
+            })();
+        </script>
+    }
+}
