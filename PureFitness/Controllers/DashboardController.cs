@@ -27,11 +27,11 @@ namespace PureFitness.Controllers
             if (role == "Admin")
             {
                 // Total active members
-                var totalMembers = _context.Members.Count(m => m.Status == "Active");
+                 var totalMembers = _context.Members.Count(m => m.Status == "Active");
 
-                // New memberships (joined within the past 7 days)
-                var oneWeekAgo = DateOnly.FromDateTime(DateTime.Now.AddDays(-7));
-                var newMembersThisWeek = _context.Members.Count(m => m.DateJoined >= oneWeekAgo);
+                // New memberships (joined within the past Month)
+                var monthlymembers = DateOnly.FromDateTime(DateTime.Now.AddMonths(-1));
+                var newMembersThisMonth = _context.Members.Count(m => m.DateJoined >= monthlymembers);
 
                 // Active equipment
                 var activeEquipmentItems = _context.EquipmentItems.Count(e => e.EquipmentItemStatus == "Available");
@@ -50,7 +50,7 @@ namespace PureFitness.Controllers
 
                 // Pass to View
                 ViewBag.TotalMembers = totalMembers;
-                ViewBag.NewMembersThisWeek = newMembersThisWeek;
+                ViewBag.NewMembersThisMonth = newMembersThisMonth;
                 ViewBag.ActiveEquipmentItems = activeEquipmentItems;
                 ViewBag.EquipmentsUnderMaintenance = equipmentsUnderMaintenance;
                 ViewBag.TotalStaff = totalStaff;

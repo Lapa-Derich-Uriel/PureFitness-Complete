@@ -25,8 +25,31 @@
             <div class="col-md-2">
                 <div class="summary-card bg-success text-white shadow-sm text-center">
                     <div class="card-body">
-                        <h5>New Memberships (This Week)</h5>
-                        <h3>@ViewBag.NewMembersThisWeek</h3>
+                        <h5>New Memberships (This Month)</h5>
+                        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                        <script>
+                            const ctx = document.getElementById('myBarChart').getContext('2d')
+                            new Chart(ctx,{
+                                type: 'bar',
+                                data:{
+                                    labels: ['January','February','March', 'April','May','June','July','August','September','October','November','December'],
+                                    datasets: [{
+                                        label: 'Memberships',
+                                        data:['10','12','15','24','13','20','26','30','21','19','9','24'],
+                                        backgroundcolor:'rgba(54,162,235,0.6)'
+                                    }]
+                                },
+                                options:{
+                                    responsive: true,
+                                    scales:{
+                                        y:{
+                                            beginatzero: true
+                                        }
+                                    }
+                                }
+                            });
+                        </script>
+                        <h3>@ViewBag.NewMembersThisMonth</h3>
                     </div>
                 </div>
             </div>
