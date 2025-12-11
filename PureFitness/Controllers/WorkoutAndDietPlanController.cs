@@ -160,7 +160,7 @@ namespace PureFitness.Controllers
         // SAVE (updates latest plan; prevents duplicates)
         // --------------------------
         [Authorize(Roles = "Admin,Staff")]
-        [HttpPost("WorkoutAndDietPlan/SaveWorkoutAndDietPlan")]
+        [HttpPost]
         public async Task<IActionResult> SaveWorkoutAndDietPlan([FromBody] SaveWorkoutAndDietPlanRequest request)
         {
             if (request == null || request.MemberId == 0)
@@ -266,7 +266,7 @@ namespace PureFitness.Controllers
         // DELETE ITEMS
         // --------------------------
         [Authorize(Roles = "Admin,Staff")]
-        [HttpDelete("DeleteWorkoutItem/{id}")]
+        [HttpDelete]
         public async Task<IActionResult> DeleteWorkoutItem(int id)
         {
             var item = await _context.WorkoutPlanItems.FindAsync(id);

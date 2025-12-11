@@ -188,18 +188,56 @@ namespace PureFitness.Controllers
         // --------------------------
         // DELETE
         // --------------------------
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public IActionResult Delete(int id)
         {
-            var staff = _context.Staffs.Include(m => m.User).FirstOrDefault(m => m.StaffId == id);
-            if (staff == null) return NotFound();
+            // Load staff with identity user
+            var staff = _context.Staffs
+                .Include(s => s.User)
+                .FirstOrDefault(s => s.StaffId == id);
 
-            if (staff.User != null)
+            if (staff == null)
+                return NotFound();
+
+            // 🚫 Prevent deletion if staff is still assigned to Members
+            bool hasAssignedMembers = _context.Members.Any(m => m.StaffId == id);
+            if (hasAssignedMembers)
             {
-                _context.Users.Remove(staff.User);
+                return BadRequest("Cannot delete staff while they are still assigned to members. Please reassign those members first.");
             }
 
+            // 🔄 Nullify StaffId in related WorkoutPlans
+            var relatedWorkoutPlans = _context.WorkoutPlans
+                .Where(wp => wp.StaffId == id)
+                .ToList();
+
+            foreach (var wp in relatedWorkoutPlans)
+                wp.StaffId = null;
+
+            // 🔄 Nullify StaffId in related DietPlans
+            var relatedDietPlans = _context.DietPlans
+                .Where(dp => dp.StaffId == id)
+                .ToList();
+
+            foreach (var dp in relatedDietPlans)
+                dp.StaffId = null;
+
+            // 🔄 Nullify StaffId in related EquipmentSchedules
+            var relatedEquipmentSchedules = _context.EquipmentSchedules
+                .Where(es => es.StaffId == id)
+                .ToList();
+
+            foreach (var es in relatedEquipmentSchedules)
+                es.StaffId = null;
+
+            // ❌ Remove linked ASP.NET Identity user
+            if (staff.User != null)
+                _context.Users.Remove(staff.User);
+
+            // ❌ Remove staff record
             _context.Staffs.Remove(staff);
+
             _context.SaveChanges();
 
             return RedirectToAction("StaffList");
